@@ -1,6 +1,7 @@
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:flutter/material.dart';
 
+import '../data/freewise_exporter.dart';
 import '../data/reading_progress_storage.dart';
 
 class ReaderPage extends StatefulWidget {
@@ -14,6 +15,7 @@ class ReaderPage extends StatefulWidget {
 
 class _ReaderPageState extends State<ReaderPage> {
   final ReadingProgressStorage _progressStorage = ReadingProgressStorage();
+  final FreeWiseExporter _exporter = FreeWiseExporter();
   ReadingProgress? _progress;
   bool _isLoadingProgress = true;
 
@@ -53,6 +55,14 @@ class _ReaderPageState extends State<ReaderPage> {
     );
   }
 
+  Future<void> _exportAnnotations() async {
+    final count = await _exporter.exportBook(widget.book);
+    if (!mounted || count == null || count == 0) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$count anotaciones exportadas a CSV.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final progress = _progress;
@@ -61,7 +71,16 @@ class _ReaderPageState extends State<ReaderPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.book.metadata.title)),
+      appBar: AppBar(
+        title: Text(widget.book.metadata.title),
+        actions: [
+          IconButton(
+            onPressed: _exportAnnotations,
+            tooltip: 'Exportar a FreeWise',
+            icon: const Icon(Icons.ios_share_outlined),
+          ),
+        ],
+      ),
       body: EpubViewer(
         book: widget.book,
         initialChapterIndex: progress?.currentChapterIndex ?? 0,

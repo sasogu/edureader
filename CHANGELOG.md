@@ -9,6 +9,7 @@ Este proyecto sigue una versión simplificada de [Keep a Changelog](https://keep
 - Guardado local de subrayados al seleccionar texto.
 - Guardado local de notas asociadas al texto seleccionado.
 - Asociación de anotaciones con el libro y capítulo correspondientes.
+- Exportación CSV compatible con FreeWise desde la pantalla de lectura.
 
 ## [0.1.0] - 2026-09-24
 

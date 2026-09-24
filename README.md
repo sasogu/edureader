@@ -17,8 +17,7 @@ En marcha:
 
 Siguiente vertical:
 
-1. Exportar subrayados y notas en un formato estable.
-2. Sincronizar con FreeWise.
+1. Sincronizar con FreeWise.
 
 La biblioteca persistida guarda una copia privada de cada EPUB dentro de la
 aplicación y registra sus rutas con `shared_preferences`. El progreso de lectura
@@ -30,6 +29,10 @@ reorganizar la aplicación.
 Los subrayados se guardan mediante el servicio local del lector y las notas se
 conectan explícitamente desde EduReader. Ambos quedan asociados al libro y al
 capítulo para preparar la futura exportación a FreeWise.
+
+Desde la pantalla de lectura se pueden exportar las anotaciones del libro a
+un CSV compatible con la importación de FreeWise. El archivo usa las columnas
+Readwise/FreeWise y fechas ISO con zona horaria UTC.
 
 El alcance inicial es deliberadamente solo EPUB. PDF, DRM, audiolibros y
 funciones avanzadas quedan fuera hasta que el flujo básico sea sólido.
