@@ -205,51 +205,56 @@ class _ReaderPageState extends State<ReaderPage> {
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(sheetContext).height * 0.75,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Índice del libro',
-                        style: Theme.of(sheetContext).textTheme.titleLarge,
-                      ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(sheetContext).height * 0.75,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Índice del libro',
+                            style: Theme.of(sheetContext).textTheme.titleLarge,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cerrar índice',
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      tooltip: 'Cerrar índice',
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: const Icon(Icons.close),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: links.length,
+                      itemBuilder: (context, index) {
+                        final (link, depth) = links[index];
+                        final label = link.title?.trim().isNotEmpty == true
+                            ? link.title!.trim()
+                            : Uri.decodeComponent(
+                                link.href.split('#').first.split('/').last,
+                              );
+                        return ListTile(
+                          contentPadding: EdgeInsetsDirectional.only(
+                            start: 20 + depth * 20,
+                            end: 16,
+                          ),
+                          title: Text(label),
+                          onTap: () => Navigator.pop(sheetContext, link),
+                        );
+                      },
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: links.length,
-                  itemBuilder: (context, index) {
-                    final (link, depth) = links[index];
-                    final label = link.title?.trim().isNotEmpty == true
-                        ? link.title!.trim()
-                        : Uri.decodeComponent(
-                            link.href.split('#').first.split('/').last,
-                          );
-                    return ListTile(
-                      contentPadding: EdgeInsetsDirectional.only(
-                        start: 20 + depth * 20,
-                        end: 16,
-                      ),
-                      title: Text(label),
-                      onTap: () => Navigator.pop(sheetContext, link),
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -331,68 +336,76 @@ class _ReaderPageState extends State<ReaderPage> {
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(sheetContext).height * 0.75,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Resultados de búsqueda',
-                            style: Theme.of(sheetContext).textTheme.titleLarge,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(sheetContext).height * 0.75,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Resultados de búsqueda',
+                                style: Theme.of(
+                                  sheetContext,
+                                ).textTheme.titleLarge,
+                              ),
+                              Text('«$query» · ${results.length} resultados'),
+                            ],
                           ),
-                          Text('«$query» · ${results.length} resultados'),
-                        ],
-                      ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cerrar resultados',
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      tooltip: 'Cerrar resultados',
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final result = results[index];
-                    final chapter =
-                        result.chapterTitle?.trim().isNotEmpty == true
-                        ? result.chapterTitle!.trim()
-                        : result.locator.title?.trim().isNotEmpty == true
-                        ? result.locator.title!.trim()
-                        : 'Capítulo';
-                    final text = result.locator.text;
-                    final excerpt = [text?.before, text?.highlight, text?.after]
-                        .whereType<String>()
-                        .where((part) => part.isNotEmpty)
-                        .join(' ');
-                    return ListTile(
-                      leading: const Icon(Icons.search),
-                      title: Text(chapter),
-                      subtitle: Text(
-                        excerpt.isEmpty ? result.locator.href : excerpt,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        _goToSearchResult(result);
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: results.length,
+                      itemBuilder: (context, index) {
+                        final result = results[index];
+                        final chapter =
+                            result.chapterTitle?.trim().isNotEmpty == true
+                            ? result.chapterTitle!.trim()
+                            : result.locator.title?.trim().isNotEmpty == true
+                            ? result.locator.title!.trim()
+                            : 'Capítulo';
+                        final text = result.locator.text;
+                        final excerpt =
+                            [text?.before, text?.highlight, text?.after]
+                                .whereType<String>()
+                                .where((part) => part.isNotEmpty)
+                                .join(' ');
+                        return ListTile(
+                          leading: const Icon(Icons.search),
+                          title: Text(chapter),
+                          subtitle: Text(
+                            excerpt.isEmpty ? result.locator.href : excerpt,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () {
+                            Navigator.pop(sheetContext);
+                            _goToSearchResult(result);
+                          },
+                        );
                       },
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -551,104 +564,109 @@ class _ReaderPageState extends State<ReaderPage> {
         var bookmarks = List<ReaderBookmark>.of(_bookmarks);
         return StatefulBuilder(
           builder: (context, setSheetState) => SafeArea(
-            child: SizedBox(
-              height: MediaQuery.sizeOf(sheetContext).height * 0.7,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
-                    child: Row(
-                      children: [
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: SizedBox(
+                  height: MediaQuery.sizeOf(sheetContext).height * 0.7,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Marcadores',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Añadir marcador aquí',
+                              onPressed: () {
+                                Navigator.pop(sheetContext);
+                                _addBookmark();
+                              },
+                              icon: const Icon(Icons.bookmark_add_outlined),
+                            ),
+                            IconButton(
+                              tooltip: 'Cerrar marcadores',
+                              onPressed: () => Navigator.pop(sheetContext),
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      if (bookmarks.isEmpty)
+                        const Expanded(
+                          child: Center(
+                            child: Text('Todavía no has guardado marcadores.'),
+                          ),
+                        )
+                      else
                         Expanded(
-                          child: Text(
-                            'Marcadores',
-                            style: Theme.of(context).textTheme.titleLarge,
+                          child: ListView.builder(
+                            itemCount: bookmarks.length,
+                            itemBuilder: (context, index) {
+                              final bookmark = bookmarks[index];
+                              final title = bookmark.label.isNotEmpty
+                                  ? bookmark.label
+                                  : bookmark.locator.title?.trim().isNotEmpty ==
+                                        true
+                                  ? bookmark.locator.title!.trim()
+                                  : 'Punto ${index + 1}';
+                              final progression =
+                                  bookmark.locator.locations?.progression;
+                              final subtitle = progression == null
+                                  ? bookmark.locator.href
+                                  : '${(progression * 100).round()}% del capítulo';
+                              return ListTile(
+                                leading: const Icon(Icons.bookmark_outline),
+                                title: Text(title),
+                                subtitle: Text(subtitle),
+                                onTap: () {
+                                  Navigator.pop(sheetContext);
+                                  _goToBookmark(bookmark);
+                                },
+                                trailing: IconButton(
+                                  tooltip: 'Eliminar marcador',
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(
+                                      this.context,
+                                    );
+                                    final updated = bookmarks
+                                        .where((item) => item.id != bookmark.id)
+                                        .toList();
+                                    try {
+                                      await _storage.saveBookmarks(
+                                        widget.book.id,
+                                        updated,
+                                      );
+                                      if (!mounted) return;
+                                      setState(() => _bookmarks = updated);
+                                      setSheetState(() => bookmarks = updated);
+                                    } catch (error) {
+                                      if (mounted) {
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'No se pudo eliminar el marcador: $error',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                              );
+                            },
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Añadir marcador aquí',
-                          onPressed: () {
-                            Navigator.pop(sheetContext);
-                            _addBookmark();
-                          },
-                          icon: const Icon(Icons.bookmark_add_outlined),
-                        ),
-                        IconButton(
-                          tooltip: 'Cerrar marcadores',
-                          onPressed: () => Navigator.pop(sheetContext),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
-                  const Divider(height: 1),
-                  if (bookmarks.isEmpty)
-                    const Expanded(
-                      child: Center(
-                        child: Text('Todavía no has guardado marcadores.'),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: bookmarks.length,
-                        itemBuilder: (context, index) {
-                          final bookmark = bookmarks[index];
-                          final title = bookmark.label.isNotEmpty
-                              ? bookmark.label
-                              : bookmark.locator.title?.trim().isNotEmpty ==
-                                    true
-                              ? bookmark.locator.title!.trim()
-                              : 'Punto ${index + 1}';
-                          final progression =
-                              bookmark.locator.locations?.progression;
-                          final subtitle = progression == null
-                              ? bookmark.locator.href
-                              : '${(progression * 100).round()}% del capítulo';
-                          return ListTile(
-                            leading: const Icon(Icons.bookmark_outline),
-                            title: Text(title),
-                            subtitle: Text(subtitle),
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              _goToBookmark(bookmark);
-                            },
-                            trailing: IconButton(
-                              tooltip: 'Eliminar marcador',
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () async {
-                                final messenger = ScaffoldMessenger.of(
-                                  this.context,
-                                );
-                                final updated = bookmarks
-                                    .where((item) => item.id != bookmark.id)
-                                    .toList();
-                                try {
-                                  await _storage.saveBookmarks(
-                                    widget.book.id,
-                                    updated,
-                                  );
-                                  if (!mounted) return;
-                                  setState(() => _bookmarks = updated);
-                                  setSheetState(() => bookmarks = updated);
-                                } catch (error) {
-                                  if (mounted) {
-                                    messenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'No se pudo eliminar el marcador: $error',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
           ),
