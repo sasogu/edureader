@@ -22,6 +22,8 @@ class _ReaderPageState extends State<ReaderPage> {
   bool _isLoadingProgress = true;
   String? _selectedText;
   int _currentChapterIndex = 0;
+  int _currentBookPage = 1;
+  int? _totalBookPages;
 
   @override
   void initState() {
@@ -35,12 +37,26 @@ class _ReaderPageState extends State<ReaderPage> {
     if (!mounted) return;
     setState(() {
       _progress = progress;
+      _currentBookPage = progress?.currentPage ?? 1;
+      _totalBookPages = progress?.totalPages;
       _isLoadingProgress = false;
     });
   }
 
   void _saveProgress(ReadingProgress progress) {
+    if (progress.currentPage != null) {
+      _currentBookPage = progress.currentPage!;
+    }
+    _totalBookPages = progress.totalPages ?? _totalBookPages;
     _progressStorage.save(progress);
+  }
+
+  void _turnPage(int direction) {
+    final targetPage = (_currentBookPage + direction)
+        .clamp(1, _totalBookPages ?? 1000000)
+        .toInt();
+    if (targetPage == _currentBookPage) return;
+    setState(() => _currentBookPage = targetPage);
   }
 
   Future<void> _syncIfConfigured() async {
@@ -205,18 +221,31 @@ class _ReaderPageState extends State<ReaderPage> {
           ),
         ],
       ),
-      body: EpubViewer(
-        book: widget.book,
-        initialChapterIndex: progress?.currentChapterIndex ?? 0,
-        initialPosition: progress?.chapterProgress ?? 0,
-        showControls: true,
-        showTableOfContents: true,
-        onProgressChanged: _saveProgress,
-        onNoteSaved: _saveNote,
-        onTextSelected: _handleTextSelected,
-        onChapterChanged: (chapterIndex) {
-          _currentChapterIndex = chapterIndex;
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          final velocity = details.primaryVelocity ?? 0;
+          if (velocity.abs() < 150) return;
+          _turnPage(velocity < 0 ? 1 : -1);
         },
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: EpubViewer(
+            key: ValueKey(_currentBookPage),
+            book: widget.book,
+            initialBookPage: _currentBookPage,
+            initialChapterIndex: progress?.currentChapterIndex ?? 0,
+            initialPosition: progress?.chapterProgress ?? 0,
+            showControls: true,
+            showTableOfContents: true,
+            onProgressChanged: _saveProgress,
+            onNoteSaved: _saveNote,
+            onTextSelected: _handleTextSelected,
+            onChapterChanged: (chapterIndex) {
+              _currentChapterIndex = chapterIndex;
+            },
+          ),
+        ),
       ),
     );
   }
