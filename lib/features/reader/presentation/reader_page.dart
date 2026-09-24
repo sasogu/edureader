@@ -27,6 +27,7 @@ class _ReaderPageState extends State<ReaderPage> {
   Publication? _publication;
   Locator? _initialLocator;
   List<ReaderDecoration> _decorations = [];
+  TextSelectionEvent? _selectedTextEvent;
   StreamSubscription<Locator>? _locatorSubscription;
   String? _error;
   bool _isLoading = true;
@@ -84,13 +85,13 @@ class _ReaderPageState extends State<ReaderPage> {
     }
   }
 
-  Future<void> _applyHighlight(SelectionActionEvent event) async {
-    final text = event.selectedText ?? event.locator.text?.highlight ?? '';
+  Future<void> _saveHighlight(Locator locator, String? selectedText) async {
+    final text = selectedText ?? locator.text?.highlight ?? '';
     if (text.trim().isEmpty) return;
 
     final decoration = ReaderDecoration(
       id: 'highlight_${DateTime.now().microsecondsSinceEpoch}',
-      locator: event.locator,
+      locator: locator,
       style: const ReaderDecorationStyle(
         style: DecorationStyle.highlight,
         tint: Color(0x80FFF176),
@@ -103,7 +104,7 @@ class _ReaderPageState extends State<ReaderPage> {
     await HighlightService.saveHighlight(
       Highlight.create(
         bookId: widget.book.id,
-        chapterIndex: _chapterIndex(event.locator),
+        chapterIndex: _chapterIndex(locator),
         text: text,
         color: const Color(0xFFFDD835),
       ),
@@ -113,6 +114,11 @@ class _ReaderPageState extends State<ReaderPage> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Subrayado guardado.')));
     }
+    if (mounted) setState(() => _selectedTextEvent = null);
+  }
+
+  Future<void> _applyHighlight(SelectionActionEvent event) {
+    return _saveHighlight(event.locator, event.selectedText);
   }
 
   Future<void> _applyNote(SelectionActionEvent event) async {
@@ -165,6 +171,11 @@ class _ReaderPageState extends State<ReaderPage> {
       case 'note':
         await _applyNote(event);
     }
+  }
+
+  void _rememberSelection(TextSelectionEvent event) {
+    if (!mounted) return;
+    setState(() => _selectedTextEvent = event);
   }
 
   int _chapterIndex(Locator locator) {
@@ -257,14 +268,33 @@ class _ReaderPageState extends State<ReaderPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 44,
+        titleSpacing: 4,
         title: Text(widget.book.metadata.title),
         actions: [
+          if (_selectedTextEvent != null)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              iconSize: 21,
+              onPressed: () {
+                final selection = _selectedTextEvent;
+                if (selection != null) {
+                  _saveHighlight(selection.locator, selection.selectedText);
+                }
+              },
+              tooltip: 'Subrayar selección',
+              icon: const Icon(Icons.highlight_alt_outlined),
+            ),
           IconButton(
+            visualDensity: VisualDensity.compact,
+            iconSize: 21,
             onPressed: _exportAnnotations,
             tooltip: 'Exportar a FreeWise',
             icon: const Icon(Icons.ios_share_outlined),
           ),
           IconButton(
+            visualDensity: VisualDensity.compact,
+            iconSize: 21,
             onPressed: _syncAnnotations,
             tooltip: 'Sincronizar con FreeWise',
             icon: const Icon(Icons.cloud_upload_outlined),
@@ -300,6 +330,7 @@ class _ReaderPageState extends State<ReaderPage> {
         SelectionAction(id: 'highlight', title: 'Subrayar'),
         SelectionAction(id: 'note', title: 'Nota'),
       ],
+      onTextSelected: _rememberSelection,
       onSelectionAction: _handleSelectionAction,
     );
   }
