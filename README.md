@@ -35,9 +35,11 @@ Desde la pantalla de lectura se pueden exportar las anotaciones del libro a
 un CSV compatible con la importación de FreeWise. El archivo usa las columnas
 Readwise/FreeWise y fechas ISO con zona horaria UTC.
 
-La configuración permite guardar la URL de FreeWise, activar el modo oscuro y
-ajustar el tamaño de letra. Estos dos últimos ajustes se aplican a la interfaz
-y al EPUB, y se conservan entre sesiones.
+La configuración permite guardar la URL de FreeWise y personalizar la lectura
+con tamaño de letra, interlineado, márgenes y tono sepia. El modo oscuro se
+aplica a la interfaz y al EPUB; sepia y oscuro son excluyentes. Los ajustes de
+lectura se conservan entre sesiones y se pueden cambiar desde la biblioteca o
+el propio lector.
 
 Durante la lectura, el botón de índice abre la tabla de contenidos del EPUB y
 permite saltar directamente a sus capítulos y secciones.

@@ -107,9 +107,21 @@ class _LibraryPageState extends State<LibraryPage> {
     final controller = TextEditingController(text: currentUrl ?? '');
     String? validationError;
     var darkMode = widget.settings.darkMode;
+    var sepiaMode = widget.settings.sepiaMode;
     var fontScale = widget.settings.fontScale;
+    var lineHeight = widget.settings.lineHeight;
+    var pageMargins = widget.settings.pageMargins;
     final configuration =
-        await showDialog<({String? url, bool darkMode, double fontScale})>(
+        await showDialog<
+          ({
+            String? url,
+            bool darkMode,
+            bool sepiaMode,
+            double fontScale,
+            double lineHeight,
+            double pageMargins,
+          })
+        >(
           context: context,
           builder: (dialogContext) => StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(
@@ -141,8 +153,19 @@ class _LibraryPageState extends State<LibraryPage> {
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Modo oscuro'),
                       value: darkMode,
-                      onChanged: (value) =>
-                          setDialogState(() => darkMode = value),
+                      onChanged: (value) => setDialogState(() {
+                        darkMode = value;
+                        if (value) sepiaMode = false;
+                      }),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Tono sepia'),
+                      value: sepiaMode,
+                      onChanged: (value) => setDialogState(() {
+                        sepiaMode = value;
+                        if (value) darkMode = false;
+                      }),
                     ),
                     const SizedBox(height: 8),
                     Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
@@ -154,6 +177,26 @@ class _LibraryPageState extends State<LibraryPage> {
                       label: '${(fontScale * 100).round()}%',
                       onChanged: (value) =>
                           setDialogState(() => fontScale = value),
+                    ),
+                    Text('Interlineado · ${lineHeight.toStringAsFixed(1)}'),
+                    Slider(
+                      value: lineHeight,
+                      min: 1,
+                      max: 2,
+                      divisions: 10,
+                      label: lineHeight.toStringAsFixed(1),
+                      onChanged: (value) =>
+                          setDialogState(() => lineHeight = value),
+                    ),
+                    Text('Márgenes · ${(pageMargins * 100).round()}%'),
+                    Slider(
+                      value: pageMargins,
+                      min: 0.5,
+                      max: 2,
+                      divisions: 15,
+                      label: '${(pageMargins * 100).round()}%',
+                      onChanged: (value) =>
+                          setDialogState(() => pageMargins = value),
                     ),
                   ],
                 ),
@@ -181,7 +224,10 @@ class _LibraryPageState extends State<LibraryPage> {
                     Navigator.pop(dialogContext, (
                       url: value.isEmpty ? null : value,
                       darkMode: darkMode,
+                      sepiaMode: sepiaMode,
                       fontScale: fontScale,
+                      lineHeight: lineHeight,
+                      pageMargins: pageMargins,
                     ));
                   },
                   child: const Text('Guardar'),
@@ -196,7 +242,10 @@ class _LibraryPageState extends State<LibraryPage> {
     try {
       await widget.settings.updateAppearance(
         darkMode: configuration.darkMode,
+        sepiaMode: configuration.sepiaMode,
         fontScale: configuration.fontScale,
+        lineHeight: configuration.lineHeight,
+        pageMargins: configuration.pageMargins,
       );
       final configuredUrl = configuration.url;
       if (configuredUrl != null) await _sync.setBaseUrl(configuredUrl);

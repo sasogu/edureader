@@ -87,55 +87,106 @@ class _ReaderPageState extends State<ReaderPage> {
 
   Future<void> _editAppearance() async {
     var darkMode = widget.settings.darkMode;
+    var sepiaMode = widget.settings.sepiaMode;
     var fontScale = widget.settings.fontScale;
-    final appearance = await showDialog<({bool darkMode, double fontScale})>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Apariencia de lectura'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Modo oscuro'),
-                value: darkMode,
-                onChanged: (value) => setDialogState(() => darkMode = value),
+    var lineHeight = widget.settings.lineHeight;
+    var pageMargins = widget.settings.pageMargins;
+    final appearance =
+        await showDialog<
+          ({
+            bool darkMode,
+            bool sepiaMode,
+            double fontScale,
+            double lineHeight,
+            double pageMargins,
+          })
+        >(
+          context: context,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: const Text('Apariencia de lectura'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Modo oscuro'),
+                    value: darkMode,
+                    onChanged: (value) => setDialogState(() {
+                      darkMode = value;
+                      if (value) sepiaMode = false;
+                    }),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Tono sepia'),
+                    value: sepiaMode,
+                    onChanged: (value) => setDialogState(() {
+                      sepiaMode = value;
+                      if (value) darkMode = false;
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
+                  Slider(
+                    value: fontScale,
+                    min: 0.8,
+                    max: 1.8,
+                    divisions: 10,
+                    label: '${(fontScale * 100).round()}%',
+                    onChanged: (value) =>
+                        setDialogState(() => fontScale = value),
+                  ),
+                  Text('Interlineado · ${lineHeight.toStringAsFixed(1)}'),
+                  Slider(
+                    value: lineHeight,
+                    min: 1,
+                    max: 2,
+                    divisions: 10,
+                    label: lineHeight.toStringAsFixed(1),
+                    onChanged: (value) =>
+                        setDialogState(() => lineHeight = value),
+                  ),
+                  Text('Márgenes · ${(pageMargins * 100).round()}%'),
+                  Slider(
+                    value: pageMargins,
+                    min: 0.5,
+                    max: 2,
+                    divisions: 15,
+                    label: '${(pageMargins * 100).round()}%',
+                    onChanged: (value) =>
+                        setDialogState(() => pageMargins = value),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
-              Slider(
-                value: fontScale,
-                min: 0.8,
-                max: 1.8,
-                divisions: 10,
-                label: '${(fontScale * 100).round()}%',
-                onChanged: (value) => setDialogState(() => fontScale = value),
-              ),
-            ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, (
+                    darkMode: darkMode,
+                    sepiaMode: sepiaMode,
+                    fontScale: fontScale,
+                    lineHeight: lineHeight,
+                    pageMargins: pageMargins,
+                  )),
+                  child: const Text('Aplicar'),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, (
-                darkMode: darkMode,
-                fontScale: fontScale,
-              )),
-              child: const Text('Aplicar'),
-            ),
-          ],
-        ),
-      ),
-    );
+        );
     if (appearance == null) return;
 
     await widget.settings.updateAppearance(
       darkMode: appearance.darkMode,
+      sepiaMode: appearance.sepiaMode,
       fontScale: appearance.fontScale,
+      lineHeight: appearance.lineHeight,
+      pageMargins: appearance.pageMargins,
     );
   }
 
