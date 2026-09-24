@@ -24,10 +24,12 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 
 ## Pendiente, por prioridad
 
-### 1. Accesibilidad y pantallas grandes
+### 1. Accesibilidad y pantallas grandes (en curso)
 
-Revisar TalkBack/VoiceOver, etiquetas accesibles, contraste y áreas táctiles.
-Adaptar biblioteca, índice y controles para tabletas y orientación horizontal.
+La biblioteca ahora usa una lista desplazable en teléfonos y una cuadrícula en
+pantallas anchas, con un límite de ancho para aprovechar mejor tabletas. Falta
+revisar TalkBack/VoiceOver, contraste, áreas táctiles y el resto de vistas en
+orientación horizontal.
 
 **Comprobación:** completar las acciones principales con lector de pantalla y
 probar el lector en teléfono, tableta y apaisado.

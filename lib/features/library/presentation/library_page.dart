@@ -279,7 +279,7 @@ class _LibraryPageState extends State<LibraryPage> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
+            constraints: const BoxConstraints(maxWidth: 1040),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: _isLoading
@@ -370,21 +370,37 @@ class _BookList extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const Spacer(),
-            Text('${books.length} EPUB'),
+            Semantics(
+              label: '${books.length} libros en la biblioteca',
+              child: ExcludeSemantics(child: Text('${books.length} EPUB')),
+            ),
           ],
         ),
         const SizedBox(height: 16),
-        ...books.map(
-          (book) => Card(
-            child: ListTile(
-              leading: const Icon(Icons.book_outlined),
-              title: Text(book.metadata.title),
-              subtitle: Text(book.metadata.creator ?? 'Autor desconocido'),
-              onTap: () => onOpenBook(book),
-            ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 640) {
+                return GridView.builder(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 480,
+                    mainAxisExtent: 100,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 4,
+                  ),
+                  itemCount: books.length,
+                  itemBuilder: (context, index) => _bookCard(books[index]),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.only(bottom: 8),
+                itemCount: books.length,
+                itemBuilder: (context, index) => _bookCard(books[index]),
+              );
+            },
           ),
         ),
-        const SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: onPickEpub,
           icon: const Icon(Icons.add),
@@ -393,4 +409,22 @@ class _BookList extends StatelessWidget {
       ],
     );
   }
+
+  Widget _bookCard(EpubBook book) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: ListTile(
+      leading: const Icon(Icons.book_outlined),
+      title: Text(
+        book.metadata.title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        book.metadata.creator ?? 'Autor desconocido',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onTap: () => onOpenBook(book),
+    ),
+  );
 }
