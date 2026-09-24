@@ -29,8 +29,9 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 La biblioteca ahora usa una lista desplazable en teléfonos y una cuadrícula en
 pantallas anchas, con un límite de ancho para aprovechar mejor tabletas. Los
 paneles de índice, búsqueda y marcadores también limitan su ancho en pantallas
-grandes. Falta revisar TalkBack/VoiceOver, contraste, áreas táctiles y el resto
-de vistas en orientación horizontal.
+grandes. Los deslizadores de apariencia y navegación anuncian con TalkBack/
+VoiceOver qué valor controlan y su unidad. Falta probar TalkBack/VoiceOver,
+contraste, áreas táctiles y el resto de vistas en orientación horizontal.
 
 **Comprobación:** completar las acciones principales con lector de pantalla y
 probar el lector en teléfono, tableta y apaisado.

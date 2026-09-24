@@ -175,6 +175,8 @@ class _LibraryPageState extends State<LibraryPage> {
                       max: 1.8,
                       divisions: 10,
                       label: '${(fontScale * 100).round()}%',
+                      semanticFormatterCallback: (value) =>
+                          'Tamaño de letra: ${(value * 100).round()} por ciento',
                       onChanged: (value) =>
                           setDialogState(() => fontScale = value),
                     ),
@@ -185,6 +187,8 @@ class _LibraryPageState extends State<LibraryPage> {
                       max: 2,
                       divisions: 10,
                       label: lineHeight.toStringAsFixed(1),
+                      semanticFormatterCallback: (value) =>
+                          'Interlineado: ${value.toStringAsFixed(1)}',
                       onChanged: (value) =>
                           setDialogState(() => lineHeight = value),
                     ),
@@ -195,6 +199,8 @@ class _LibraryPageState extends State<LibraryPage> {
                       max: 2,
                       divisions: 15,
                       label: '${(pageMargins * 100).round()}%',
+                      semanticFormatterCallback: (value) =>
+                          'Márgenes: ${(value * 100).round()} por ciento',
                       onChanged: (value) =>
                           setDialogState(() => pageMargins = value),
                     ),

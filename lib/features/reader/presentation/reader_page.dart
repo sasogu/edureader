@@ -135,6 +135,8 @@ class _ReaderPageState extends State<ReaderPage> {
                     max: 1.8,
                     divisions: 10,
                     label: '${(fontScale * 100).round()}%',
+                    semanticFormatterCallback: (value) =>
+                        'Tamaño de letra: ${(value * 100).round()} por ciento',
                     onChanged: (value) =>
                         setDialogState(() => fontScale = value),
                   ),
@@ -145,6 +147,8 @@ class _ReaderPageState extends State<ReaderPage> {
                     max: 2,
                     divisions: 10,
                     label: lineHeight.toStringAsFixed(1),
+                    semanticFormatterCallback: (value) =>
+                        'Interlineado: ${value.toStringAsFixed(1)}',
                     onChanged: (value) =>
                         setDialogState(() => lineHeight = value),
                   ),
@@ -155,6 +159,8 @@ class _ReaderPageState extends State<ReaderPage> {
                     max: 2,
                     divisions: 15,
                     label: '${(pageMargins * 100).round()}%',
+                    semanticFormatterCallback: (value) =>
+                        'Márgenes: ${(value * 100).round()} por ciento',
                     onChanged: (value) =>
                         setDialogState(() => pageMargins = value),
                   ),
@@ -439,6 +445,8 @@ class _ReaderPageState extends State<ReaderPage> {
                 max: 1,
                 divisions: 100,
                 label: '${(selectedProgress * 100).round()}%',
+                semanticFormatterCallback: (value) =>
+                    'Progreso del libro: ${(value * 100).round()} por ciento',
                 onChanged: (value) =>
                     setDialogState(() => selectedProgress = value),
               ),
