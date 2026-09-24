@@ -56,6 +56,37 @@ flutter analyze
 flutter run
 ```
 
+### Probar en navegador
+
+```bash
+flutter run -d chrome
+```
+
+Para servir la compilación web desde otro dispositivo de la red:
+
+```bash
+python3 -m http.server 8080 --directory build/web --bind 0.0.0.0
+```
+
+Después abre `http://IP_DEL_SERVIDOR:8080`. El selector de archivos funciona
+en el navegador, aunque la biblioteca web usa el almacenamiento del navegador
+y no comparte los EPUB con Android o iOS.
+
+### Probar en Android
+
+El APK de depuración se genera con:
+
+```bash
+flutter build apk --debug
+```
+
+El archivo queda en `build/app/outputs/flutter-apk/app-debug.apk`. Se puede
+copiar al teléfono e instalarlo, o ejecutar directamente:
+
+```bash
+flutter run -d android
+```
+
 ## Arquitectura prevista
 
 ```text
