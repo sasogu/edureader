@@ -35,6 +35,23 @@ Desde la pantalla de lectura se pueden exportar las anotaciones del libro a
 un CSV compatible con la importación de FreeWise. El archivo usa las columnas
 Readwise/FreeWise y fechas ISO con zona horaria UTC.
 
+La configuración permite guardar la URL de FreeWise, activar el modo oscuro y
+ajustar el tamaño de letra. Estos dos últimos ajustes se aplican a la interfaz
+y al EPUB, y se conservan entre sesiones.
+
+Durante la lectura, el botón de índice abre la tabla de contenidos del EPUB y
+permite saltar directamente a sus capítulos y secciones.
+
+También se pueden guardar varios marcadores con nombre opcional por libro,
+volver a cada punto y eliminarlos sin afectar al progreso automático ni a los
+subrayados.
+
+El lector permite buscar palabras y frases en el EPUB, consultar fragmentos y
+abrir directamente cada coincidencia en Android e iOS.
+
+El menú del lector también permite saltar por porcentaje a cualquier punto del
+libro, además de la navegación por capítulos del índice.
+
 También existe sincronización directa: el botón de nube envía el CSV al
 endpoint de importación de FreeWise. La primera vez solicita la URL del
 servidor y la guarda localmente. Las siguientes sincronizaciones son

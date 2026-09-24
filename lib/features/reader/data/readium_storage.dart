@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_readium/flutter_readium.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'reader_bookmark.dart';
+
 class ReadiumStorage {
   Future<Locator?> loadLocator(String bookId) async {
     final preferences = await SharedPreferences.getInstance();
@@ -46,7 +48,35 @@ class ReadiumStorage {
     );
   }
 
+  Future<List<ReaderBookmark>> loadBookmarks(String bookId) async {
+    final preferences = await SharedPreferences.getInstance();
+    final value = preferences.getString(_bookmarksKey(bookId));
+    if (value == null) return [];
+
+    try {
+      final items = jsonDecode(value) as List<dynamic>;
+      return items
+          .map((item) => ReaderBookmark.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> saveBookmarks(
+    String bookId,
+    List<ReaderBookmark> bookmarks,
+  ) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      _bookmarksKey(bookId),
+      jsonEncode(bookmarks.map((bookmark) => bookmark.toJson()).toList()),
+    );
+  }
+
   String _locatorKey(String bookId) => 'readium_locator_$bookId';
 
   String _decorationsKey(String bookId) => 'readium_decorations_$bookId';
+
+  String _bookmarksKey(String bookId) => 'readium_bookmarks_$bookId';
 }

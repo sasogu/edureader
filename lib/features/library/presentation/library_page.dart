@@ -2,12 +2,15 @@ import 'package:file_picker/file_picker.dart';
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/settings/app_settings.dart';
 import '../../reader/data/freewise_sync.dart';
 import '../data/library_storage.dart';
 import '../../reader/presentation/reader_page.dart';
 
 class LibraryPage extends StatefulWidget {
-  const LibraryPage({super.key});
+  const LibraryPage({required this.settings, super.key});
+
+  final AppSettings settings;
 
   @override
   State<LibraryPage> createState() => _LibraryPageState();
@@ -72,9 +75,11 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Future<void> _openBook(EpubBook book) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => ReaderPage(book: book)));
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReaderPage(book: book, settings: widget.settings),
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -101,63 +106,103 @@ class _LibraryPageState extends State<LibraryPage> {
 
     final controller = TextEditingController(text: currentUrl ?? '');
     String? validationError;
-    final configuredUrl = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Configuración'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.url,
-            autocorrect: false,
-            decoration: InputDecoration(
-              labelText: 'URL del servidor FreeWise',
-              hintText: 'http://freewise.example.com',
-              helperText: 'Incluye http:// o https://',
-              errorText: validationError,
+    var darkMode = widget.settings.darkMode;
+    var fontScale = widget.settings.fontScale;
+    final configuration =
+        await showDialog<({String? url, bool darkMode, double fontScale})>(
+          context: context,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: const Text('Configuración'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      autofocus: true,
+                      keyboardType: TextInputType.url,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        labelText: 'URL del servidor FreeWise',
+                        hintText: 'http://freewise.example.com',
+                        helperText: 'Incluye http:// o https://',
+                        errorText: validationError,
+                      ),
+                      onChanged: (_) {
+                        if (validationError != null) {
+                          setDialogState(() => validationError = null);
+                        }
+                      },
+                    ),
+                    const Divider(height: 32),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Modo oscuro'),
+                      value: darkMode,
+                      onChanged: (value) =>
+                          setDialogState(() => darkMode = value),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
+                    Slider(
+                      value: fontScale,
+                      min: 0.8,
+                      max: 1.8,
+                      divisions: 10,
+                      label: '${(fontScale * 100).round()}%',
+                      onChanged: (value) =>
+                          setDialogState(() => fontScale = value),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final value = controller.text.trim();
+                    final uri = value.isEmpty ? null : Uri.tryParse(value);
+                    if (value.isNotEmpty &&
+                        (uri == null ||
+                            !uri.hasAuthority ||
+                            uri.host.isEmpty ||
+                            !{'http', 'https'}.contains(uri.scheme))) {
+                      setDialogState(
+                        () => validationError =
+                            'Introduce una URL válida que empiece por http:// o https://.',
+                      );
+                      return;
+                    }
+                    Navigator.pop(dialogContext, (
+                      url: value.isEmpty ? null : value,
+                      darkMode: darkMode,
+                      fontScale: fontScale,
+                    ));
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
             ),
-            onChanged: (_) {
-              if (validationError != null) {
-                setDialogState(() => validationError = null);
-              }
-            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final value = controller.text.trim();
-                final uri = Uri.tryParse(value);
-                if (uri == null ||
-                    !uri.hasAuthority ||
-                    uri.host.isEmpty ||
-                    !{'http', 'https'}.contains(uri.scheme)) {
-                  setDialogState(
-                    () => validationError =
-                        'Introduce una URL válida que empiece por http:// o https://.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, value);
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        ),
-      ),
-    );
+        );
     controller.dispose();
 
-    if (!mounted || configuredUrl == null) return;
+    if (!mounted || configuration == null) return;
     try {
-      await _sync.setBaseUrl(configuredUrl);
+      await widget.settings.updateAppearance(
+        darkMode: configuration.darkMode,
+        fontScale: configuration.fontScale,
+      );
+      final configuredUrl = configuration.url;
+      if (configuredUrl != null) await _sync.setBaseUrl(configuredUrl);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Configuración de FreeWise guardada.')),
+          const SnackBar(content: Text('Configuración guardada.')),
         );
       }
     } catch (error) {
