@@ -353,7 +353,9 @@ class _EmptyLibrary extends StatelessWidget {
   }
 }
 
-class _BookList extends StatelessWidget {
+enum _LibrarySort { recentlyAdded, title, author }
+
+class _BookList extends StatefulWidget {
   const _BookList({
     required this.books,
     required this.onOpenBook,
@@ -365,7 +367,42 @@ class _BookList extends StatelessWidget {
   final VoidCallback onPickEpub;
 
   @override
+  State<_BookList> createState() => _BookListState();
+}
+
+class _BookListState extends State<_BookList> {
+  String _query = '';
+  _LibrarySort _sort = _LibrarySort.recentlyAdded;
+
+  List<EpubBook> get _visibleBooks {
+    final query = _query.trim().toLowerCase();
+    final filtered = widget.books.where((book) {
+      return query.isEmpty ||
+          book.metadata.title.toLowerCase().contains(query) ||
+          (book.metadata.creator ?? '').toLowerCase().contains(query);
+    }).toList();
+    switch (_sort) {
+      case _LibrarySort.recentlyAdded:
+        break;
+      case _LibrarySort.title:
+        filtered.sort(
+          (a, b) => a.metadata.title.toLowerCase().compareTo(
+            b.metadata.title.toLowerCase(),
+          ),
+        );
+      case _LibrarySort.author:
+        filtered.sort(
+          (a, b) => (a.metadata.creator ?? '').toLowerCase().compareTo(
+            (b.metadata.creator ?? '').toLowerCase(),
+          ),
+        );
+    }
+    return filtered;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final visibleBooks = _visibleBooks;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -377,38 +414,83 @@ class _BookList extends StatelessWidget {
             ),
             const Spacer(),
             Semantics(
-              label: '${books.length} libros en la biblioteca',
-              child: ExcludeSemantics(child: Text('${books.length} EPUB')),
+              label: '${widget.books.length} libros en la biblioteca',
+              child: ExcludeSemantics(
+                child: Text('${widget.books.length} EPUB'),
+              ),
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Buscar en la biblioteca',
+            hintText: 'Título o autor',
+            prefixIcon: Icon(Icons.search),
+            border: OutlineInputBorder(),
+          ),
+          textInputAction: TextInputAction.search,
+          onChanged: (value) => setState(() => _query = value),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<_LibrarySort>(
+          initialValue: _sort,
+          decoration: const InputDecoration(
+            labelText: 'Ordenar por',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: _LibrarySort.recentlyAdded,
+              child: Text('Añadidos recientemente'),
+            ),
+            DropdownMenuItem(value: _LibrarySort.title, child: Text('Título')),
+            DropdownMenuItem(value: _LibrarySort.author, child: Text('Autor')),
+          ],
+          onChanged: (value) {
+            if (value != null) setState(() => _sort = value);
+          },
+        ),
         const SizedBox(height: 16),
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth >= 640) {
-                return GridView.builder(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 480,
-                    mainAxisExtent: 100,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 4,
+          child: visibleBooks.isEmpty
+              ? Center(
+                  child: Text(
+                    _query.isEmpty
+                        ? 'La biblioteca está vacía.'
+                        : 'No hay libros que coincidan con «$_query».',
+                    textAlign: TextAlign.center,
                   ),
-                  itemCount: books.length,
-                  itemBuilder: (context, index) => _bookCard(books[index]),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 8),
-                itemCount: books.length,
-                itemBuilder: (context, index) => _bookCard(books[index]),
-              );
-            },
-          ),
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth >= 640) {
+                      return GridView.builder(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 480,
+                              mainAxisExtent: 100,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 4,
+                            ),
+                        itemCount: visibleBooks.length,
+                        itemBuilder: (context, index) =>
+                            _bookCard(visibleBooks[index]),
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      itemCount: visibleBooks.length,
+                      itemBuilder: (context, index) =>
+                          _bookCard(visibleBooks[index]),
+                    );
+                  },
+                ),
         ),
         OutlinedButton.icon(
-          onPressed: onPickEpub,
+          onPressed: widget.onPickEpub,
           icon: const Icon(Icons.add),
           label: const Text('Añadir otro EPUB'),
         ),
@@ -430,7 +512,7 @@ class _BookList extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      onTap: () => onOpenBook(book),
+      onTap: () => widget.onOpenBook(book),
     ),
   );
 }

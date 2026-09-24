@@ -66,6 +66,9 @@ incrementales y solo envían anotaciones posteriores a la última sincronizació
 correcta. La configuración predeterminada apunta al servidor FreeWise configurado
 (`http://freewise.example.com`). Si falla la red, el intento queda pendiente.
 
+La biblioteca permite filtrar por título o autor y ordenar por incorporación,
+título o autor; estas operaciones solo cambian la vista y no alteran los EPUB.
+
 La configuración nativa de Readium requiere Android con `minSdk 24`,
 `FlutterFragmentActivity` y desugaring de la biblioteca estándar. En iOS se
 incluyen los pods de Readium con despliegue mínimo en iOS 15. En web se carga

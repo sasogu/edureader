@@ -45,10 +45,11 @@ seguimiento dependen del sistema y del EPUB.
 **Pendiente de comprobar en el teléfono:** voces disponibles, seguimiento del
 texto, app en segundo plano y pantalla bloqueada; documentar limitaciones.
 
-### 3. Organización de la biblioteca
+### 3. Organización de la biblioteca (en curso)
 
-Mostrar portadas y permitir buscar, ordenar y agrupar libros. Mantener el
-almacenamiento local y no borrar archivos al reorganizar la vista.
+La biblioteca permite buscar por título o autor y ordenar por incorporación,
+título o autor. Falta añadir portadas y agrupación. Estas operaciones solo
+reorganizan la vista y no modifican los archivos locales.
 
 **Comprobación:** importar varios EPUB, ordenar y filtrar; cerrar y volver a
 abrir la app para confirmar que la biblioteca permanece intacta.
