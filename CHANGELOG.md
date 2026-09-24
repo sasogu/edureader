@@ -2,6 +2,14 @@
 
 Este proyecto sigue una versión simplificada de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## Próximo lanzamiento
+
+### Añadido
+
+- Guardado local de subrayados al seleccionar texto.
+- Guardado local de notas asociadas al texto seleccionado.
+- Asociación de anotaciones con el libro y capítulo correspondientes.
+
 ## [0.1.0] - 2026-09-24
 
 Primera versión funcional del prototipo.

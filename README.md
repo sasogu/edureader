@@ -17,9 +17,8 @@ En marcha:
 
 Siguiente vertical:
 
-1. Seleccionar texto y crear subrayados/notas propios de EduReader.
-2. Exportar subrayados en un formato estable.
-3. Sincronizar con FreeWise.
+1. Exportar subrayados y notas en un formato estable.
+2. Sincronizar con FreeWise.
 
 La biblioteca persistida guarda una copia privada de cada EPUB dentro de la
 aplicación y registra sus rutas con `shared_preferences`. El progreso de lectura
@@ -27,6 +26,10 @@ también se guarda por libro, capítulo y posición. El motor de lectura actual 
 `advanced_epub_reader`; su integración queda aislada en
 `features/reader/presentation/reader_page.dart` para poder cambiarla sin
 reorganizar la aplicación.
+
+Los subrayados se guardan mediante el servicio local del lector y las notas se
+conectan explícitamente desde EduReader. Ambos quedan asociados al libro y al
+capítulo para preparar la futura exportación a FreeWise.
 
 El alcance inicial es deliberadamente solo EPUB. PDF, DRM, audiolibros y
 funciones avanzadas quedan fuera hasta que el flujo básico sea sólido.

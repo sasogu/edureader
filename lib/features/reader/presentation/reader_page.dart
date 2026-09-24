@@ -36,6 +36,23 @@ class _ReaderPageState extends State<ReaderPage> {
     _progressStorage.save(progress);
   }
 
+  void _saveNote({
+    required int chapterIndex,
+    required double position,
+    required String selectedText,
+    required String noteContent,
+    String? color,
+  }) {
+    NoteService.saveNote(
+      Note.create(
+        bookId: widget.book.id,
+        chapterIndex: chapterIndex,
+        selectedText: selectedText,
+        content: noteContent,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final progress = _progress;
@@ -52,6 +69,7 @@ class _ReaderPageState extends State<ReaderPage> {
         showControls: true,
         showTableOfContents: true,
         onProgressChanged: _saveProgress,
+        onNoteSaved: _saveNote,
       ),
     );
   }
