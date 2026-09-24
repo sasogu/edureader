@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:flutter/material.dart';
 
+import '../../reader/data/freewise_sync.dart';
 import '../data/library_storage.dart';
 import '../../reader/presentation/reader_page.dart';
 
@@ -14,6 +15,7 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   final LibraryStorage _storage = LibraryStorage();
+  final FreeWiseSync _sync = FreeWiseSync();
   final List<EpubBook> _books = [];
   bool _isLoading = false;
 
@@ -85,6 +87,86 @@ class _LibraryPageState extends State<LibraryPage> {
     _openBook(book);
   }
 
+  Future<void> _openSettings() async {
+    String? currentUrl;
+    try {
+      currentUrl = await _sync.getBaseUrl();
+    } catch (error) {
+      if (mounted) {
+        _showError('No se pudo cargar la configuración: $error');
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    final controller = TextEditingController(text: currentUrl ?? '');
+    String? validationError;
+    final configuredUrl = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Configuración'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: 'URL del servidor FreeWise',
+              hintText: 'http://freewise.example.com',
+              helperText: 'Incluye http:// o https://',
+              errorText: validationError,
+            ),
+            onChanged: (_) {
+              if (validationError != null) {
+                setDialogState(() => validationError = null);
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                final uri = Uri.tryParse(value);
+                if (uri == null ||
+                    !uri.hasAuthority ||
+                    uri.host.isEmpty ||
+                    !{'http', 'https'}.contains(uri.scheme)) {
+                  setDialogState(
+                    () => validationError =
+                        'Introduce una URL válida que empiece por http:// o https://.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, value);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+
+    if (!mounted || configuredUrl == null) return;
+    try {
+      await _sync.setBaseUrl(configuredUrl);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Configuración de FreeWise guardada.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        _showError('No se pudo guardar la configuración: $error');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasBooks = _books.isNotEmpty;
@@ -94,7 +176,7 @@ class _LibraryPageState extends State<LibraryPage> {
         title: const Text('EduReader'),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: _openSettings,
             tooltip: 'Ajustes',
             icon: const Icon(Icons.settings_outlined),
           ),

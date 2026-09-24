@@ -42,6 +42,15 @@ class LibraryStorage {
     final destinationPath = p.join(booksDirectory.path, destinationName);
     await File(sourcePath).copy(destinationPath);
 
+    late final EpubBook book;
+    try {
+      book = await EpubParserService.parseFromFile(destinationPath);
+    } catch (_) {
+      // No conservar copias que no se pueden abrir como EPUB.
+      await File(destinationPath).delete();
+      rethrow;
+    }
+
     final preferences = await SharedPreferences.getInstance();
     final storedPaths = preferences.getStringList(_pathsKey) ?? <String>[];
     if (!storedPaths.contains(destinationPath)) {
@@ -49,7 +58,6 @@ class LibraryStorage {
       await preferences.setStringList(_pathsKey, storedPaths);
     }
 
-    final book = await EpubParserService.parseFromFile(destinationPath);
     return book.copyWith(id: destinationPath);
   }
 }

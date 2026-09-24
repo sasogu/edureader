@@ -216,15 +216,23 @@ class _ReaderPageState extends State<ReaderPage> {
   }
 
   Future<void> _syncIfConfigured() async {
-    final baseUrl = await _sync.getBaseUrl();
-    if (baseUrl == null || baseUrl.isEmpty) return;
     try {
+      final baseUrl = await _sync.getBaseUrl();
+      if (baseUrl == null || baseUrl.isEmpty) return;
+
       final count = await _sync.syncBook(widget.book);
       if (!mounted || count == 0) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nuevas anotaciones sincronizadas.')),
       );
-    } catch (_) {}
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo sincronizar automáticamente: $error'),
+        ),
+      );
+    }
   }
 
   Future<void> _syncAnnotations() async {

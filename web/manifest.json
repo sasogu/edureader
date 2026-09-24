@@ -1,6 +1,6 @@
 {
-    "name": "edureader",
-    "short_name": "edureader",
+    "name": "EduReader",
+    "short_name": "EduReader",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
