@@ -6,7 +6,33 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 
 class FreeWiseExporter {
+  Future<Uint8List?> buildCsvBytes(EpubBook book) async {
+    final csv = await buildCsv(book);
+    return csv == null ? null : Uint8List.fromList(utf8.encode(csv));
+  }
+
+  Future<String?> buildCsv(EpubBook book) async {
+    final rows = await _buildRows(book);
+    if (rows.length == 1) return null;
+    return const ListToCsvConverter().convert(rows);
+  }
+
   Future<int?> exportBook(EpubBook book) async {
+    final csv = await buildCsv(book);
+    if (csv == null) return 0;
+
+    final rows = await _buildRows(book);
+    final savedPath = await FilePicker.saveFile(
+      dialogTitle: 'Exportar anotaciones a FreeWise',
+      fileName: _fileName(book),
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      bytes: Uint8List.fromList(utf8.encode(csv)),
+    );
+    return savedPath == null ? null : rows.length - 1;
+  }
+
+  Future<List<List<String>>> _buildRows(EpubBook book) async {
     final highlights = await HighlightService.getHighlights(book.id);
     final notes = await NoteService.getNotes(book.id);
     final notesByText = <String, List<Note>>{};
@@ -61,18 +87,7 @@ class FreeWiseExporter {
         );
       }
     }
-
-    if (rows.length == 1) return 0;
-
-    final csv = const ListToCsvConverter().convert(rows);
-    final savedPath = await FilePicker.saveFile(
-      dialogTitle: 'Exportar anotaciones a FreeWise',
-      fileName: _fileName(book),
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-      bytes: Uint8List.fromList(utf8.encode(csv)),
-    );
-    return savedPath == null ? null : rows.length - 1;
+    return rows;
   }
 
   List<String> _row(

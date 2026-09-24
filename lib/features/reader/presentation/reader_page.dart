@@ -2,6 +2,7 @@ import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:flutter/material.dart';
 
 import '../data/freewise_exporter.dart';
+import '../data/freewise_sync.dart';
 import '../data/reading_progress_storage.dart';
 
 class ReaderPage extends StatefulWidget {
@@ -16,6 +17,7 @@ class ReaderPage extends StatefulWidget {
 class _ReaderPageState extends State<ReaderPage> {
   final ReadingProgressStorage _progressStorage = ReadingProgressStorage();
   final FreeWiseExporter _exporter = FreeWiseExporter();
+  final FreeWiseSync _sync = FreeWiseSync();
   ReadingProgress? _progress;
   bool _isLoadingProgress = true;
 
@@ -63,6 +65,67 @@ class _ReaderPageState extends State<ReaderPage> {
     );
   }
 
+  Future<void> _syncAnnotations() async {
+    var baseUrl = await _sync.getBaseUrl();
+    if (!mounted) return;
+
+    if (baseUrl == null || baseUrl.isEmpty) {
+      final controller = TextEditingController(
+        text: 'http://freewise.example.com',
+      );
+      final configuredUrl = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Configurar FreeWise'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              labelText: 'URL del servidor',
+              hintText: 'http://freewise.example.com',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('Guardar y sincronizar'),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (!mounted || configuredUrl == null || configuredUrl.trim().isEmpty) {
+        return;
+      }
+      await _sync.setBaseUrl(configuredUrl);
+      baseUrl = configuredUrl;
+    }
+
+    try {
+      final count = await _sync.syncBook(widget.book);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            count == 0
+                ? 'No hay anotaciones nuevas para sincronizar.'
+                : 'Anotaciones enviadas a FreeWise.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo sincronizar con FreeWise: $error')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final progress = _progress;
@@ -78,6 +141,11 @@ class _ReaderPageState extends State<ReaderPage> {
             onPressed: _exportAnnotations,
             tooltip: 'Exportar a FreeWise',
             icon: const Icon(Icons.ios_share_outlined),
+          ),
+          IconButton(
+            onPressed: _syncAnnotations,
+            tooltip: 'Sincronizar con FreeWise',
+            icon: const Icon(Icons.cloud_upload_outlined),
           ),
         ],
       ),

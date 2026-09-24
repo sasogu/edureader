@@ -17,7 +17,7 @@ En marcha:
 
 Siguiente vertical:
 
-1. Sincronizar con FreeWise.
+1. Mejorar la sincronización incremental y el control de duplicados.
 
 La biblioteca persistida guarda una copia privada de cada EPUB dentro de la
 aplicación y registra sus rutas con `shared_preferences`. El progreso de lectura
@@ -33,6 +33,11 @@ capítulo para preparar la futura exportación a FreeWise.
 Desde la pantalla de lectura se pueden exportar las anotaciones del libro a
 un CSV compatible con la importación de FreeWise. El archivo usa las columnas
 Readwise/FreeWise y fechas ISO con zona horaria UTC.
+
+También existe sincronización directa: el botón de nube envía el CSV al
+endpoint de importación de FreeWise. La primera vez solicita la URL del
+servidor y la guarda localmente. La configuración predeterminada apunta al
+servidor FreeWise configurado (`http://freewise.example.com`).
 
 El alcance inicial es deliberadamente solo EPUB. PDF, DRM, audiolibros y
 funciones avanzadas quedan fuera hasta que el flujo básico sea sólido.

@@ -10,6 +10,8 @@ Este proyecto sigue una versión simplificada de [Keep a Changelog](https://keep
 - Guardado local de notas asociadas al texto seleccionado.
 - Asociación de anotaciones con el libro y capítulo correspondientes.
 - Exportación CSV compatible con FreeWise desde la pantalla de lectura.
+- Sincronización directa con el endpoint de importación de FreeWise.
+- Configuración persistente de la URL de FreeWise.
 
 ## [0.1.0] - 2026-09-24
 
