@@ -54,6 +54,11 @@ abrir directamente cada coincidencia en Android e iOS.
 El menú del lector también permite saltar por porcentaje a cualquier punto del
 libro, además de la navegación por capítulos del índice.
 
+El lector incluye controles iniciales de lectura en voz alta con Readium:
+reproducir o pausar, avanzar o retroceder una frase y ajustar la velocidad. La
+disponibilidad y el seguimiento del texto dependen de las voces del dispositivo
+y de la estructura del EPUB.
+
 También existe sincronización directa: el botón de nube envía el CSV al
 endpoint de importación de FreeWise. La primera vez solicita la URL del
 servidor y la guarda localmente. Las siguientes sincronizaciones son

@@ -11,7 +11,12 @@ import '../data/freewise_sync.dart';
 import '../data/reader_bookmark.dart';
 import '../data/readium_storage.dart';
 
-enum _ReaderMenuAction { goToProgress, exportAnnotations, syncAnnotations }
+enum _ReaderMenuAction {
+  readAloud,
+  goToProgress,
+  exportAnnotations,
+  syncAnnotations,
+}
 
 class ReaderPage extends StatefulWidget {
   const ReaderPage({required this.book, required this.settings, super.key});
@@ -41,6 +46,10 @@ class _ReaderPageState extends State<ReaderPage> {
   bool _isSavingHighlight = false;
   bool _isSearching = false;
   bool _isFullscreen = false;
+  bool _ttsEnabled = false;
+  bool _isTtsPlaying = false;
+  bool _isTtsBusy = false;
+  double _ttsSpeed = 1;
   double _readingProgress = 0;
 
   @override
@@ -485,10 +494,135 @@ class _ReaderPageState extends State<ReaderPage> {
     }
   }
 
+  Future<void> _toggleTtsPlayback() async {
+    if (_isTtsBusy) return;
+    setState(() => _isTtsBusy = true);
+    try {
+      if (_isTtsPlaying) {
+        await _readium.pause();
+      } else if (_ttsEnabled) {
+        await _readium.resume();
+      } else {
+        await _readium.ttsEnable(TTSPreferences(speed: _ttsSpeed));
+        await _readium.play(null);
+      }
+      if (mounted) {
+        setState(() {
+          _ttsEnabled = true;
+          _isTtsPlaying = !_isTtsPlaying;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo iniciar la lectura en voz alta: $error'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isTtsBusy = false);
+    }
+  }
+
+  Future<void> _skipTts(bool forward) async {
+    try {
+      if (forward) {
+        await _readium.next();
+      } else {
+        await _readium.previous();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo avanzar en la lectura: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateTtsSpeed(double speed) async {
+    setState(() => _ttsSpeed = speed);
+    if (!_ttsEnabled) return;
+    try {
+      await _readium.ttsSetPreferences(TTSPreferences(speed: speed));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo cambiar la velocidad: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openReadAloudControls() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Lectura en voz alta'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    tooltip: 'Frase anterior',
+                    onPressed: _ttsEnabled ? () => _skipTts(false) : null,
+                    icon: const Icon(Icons.skip_previous),
+                  ),
+                  IconButton.filled(
+                    tooltip: _isTtsPlaying ? 'Pausar' : 'Reproducir',
+                    onPressed: _isTtsBusy
+                        ? null
+                        : () async {
+                            await _toggleTtsPlayback();
+                            setDialogState(() {});
+                          },
+                    icon: Icon(_isTtsPlaying ? Icons.pause : Icons.play_arrow),
+                  ),
+                  IconButton(
+                    tooltip: 'Frase siguiente',
+                    onPressed: _ttsEnabled ? () => _skipTts(true) : null,
+                    icon: const Icon(Icons.skip_next),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text('Velocidad · ${_ttsSpeed.toStringAsFixed(1)}×'),
+              Slider(
+                value: _ttsSpeed,
+                min: 0.5,
+                max: 2,
+                divisions: 15,
+                label: '${_ttsSpeed.toStringAsFixed(1)}×',
+                semanticFormatterCallback: (value) =>
+                    'Velocidad de lectura: ${value.toStringAsFixed(1)} veces',
+                onChanged: (value) {
+                  setDialogState(() => _ttsSpeed = value);
+                },
+                onChangeEnd: _updateTtsSpeed,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _handleMenuAction(_ReaderMenuAction action) {
     switch (action) {
       case _ReaderMenuAction.goToProgress:
         _openProgressNavigator();
+      case _ReaderMenuAction.readAloud:
+        _openReadAloudControls();
       case _ReaderMenuAction.exportAnnotations:
         _exportAnnotations();
       case _ReaderMenuAction.syncAnnotations:
@@ -1006,6 +1140,16 @@ class _ReaderPageState extends State<ReaderPage> {
                   tooltip: 'Más opciones',
                   onSelected: _handleMenuAction,
                   itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: _ReaderMenuAction.readAloud,
+                      child: Row(
+                        children: [
+                          Icon(Icons.volume_up_outlined),
+                          SizedBox(width: 12),
+                          Text('Lectura en voz alta'),
+                        ],
+                      ),
+                    ),
                     PopupMenuItem(
                       value: _ReaderMenuAction.goToProgress,
                       child: Row(

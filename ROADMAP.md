@@ -36,13 +36,14 @@ contraste, áreas táctiles y el resto de vistas en orientación horizontal.
 **Comprobación:** completar las acciones principales con lector de pantalla y
 probar el lector en teléfono, tableta y apaisado.
 
-### 2. Lectura en voz alta
+### 2. Lectura en voz alta (implementación inicial)
 
-Integrar los controles TTS de Readium: iniciar/pausar, avanzar y retroceder,
-velocidad y seguimiento del texto, si la voz y el EPUB lo permiten.
+El menú del lector abre controles Readium para iniciar/pausar, avanzar o
+retroceder una frase y ajustar la velocidad. La disponibilidad de voz y el
+seguimiento dependen del sistema y del EPUB.
 
-**Comprobación:** probar con la app en segundo plano, pantalla bloqueada y un
-EPUB con estructura y voces compatibles; documentar las limitaciones.
+**Pendiente de comprobar en el teléfono:** voces disponibles, seguimiento del
+texto, app en segundo plano y pantalla bloqueada; documentar limitaciones.
 
 ### 3. Organización de la biblioteca
 
