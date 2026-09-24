@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/settings/app_settings.dart';
 import '../../reader/data/freewise_sync.dart';
+import '../../reader/data/nextcloud_sync.dart';
 import '../data/library_storage.dart';
 import '../../reader/presentation/reader_page.dart';
+
+enum _NextcloudAction { sync, configure }
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({required this.settings, super.key});
@@ -19,8 +22,10 @@ class LibraryPage extends StatefulWidget {
 class _LibraryPageState extends State<LibraryPage> {
   final LibraryStorage _storage = LibraryStorage();
   final FreeWiseSync _sync = FreeWiseSync();
+  final NextcloudSync _nextcloud = NextcloudSync();
   final List<EpubBook> _books = [];
   bool _isLoading = false;
+  bool _isNextcloudSyncing = false;
 
   @override
   void initState() {
@@ -40,6 +45,7 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Future<void> _pickEpub() async {
+    if (_isNextcloudSyncing) return;
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['epub'],
@@ -90,6 +96,181 @@ class _LibraryPageState extends State<LibraryPage> {
 
   void _openStoredBook(EpubBook book) {
     _openBook(book);
+  }
+
+  Future<bool> _configureNextcloud() async {
+    final existing = await _nextcloud.loadConnection();
+    if (!mounted) return false;
+    final serverController = TextEditingController(
+      text: existing?.serverUrl ?? '',
+    );
+    final usernameController = TextEditingController(
+      text: existing?.username ?? '',
+    );
+    final passwordController = TextEditingController();
+    String? validationError;
+    final configuration =
+        await showDialog<
+          ({String serverUrl, String username, String appPassword})
+        >(
+          context: context,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: const Text('Conectar con Nextcloud'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: serverController,
+                      keyboardType: TextInputType.url,
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        labelText: 'URL de Nextcloud',
+                        hintText: 'https://nube.ejemplo.com',
+                      ),
+                    ),
+                    TextField(
+                      controller: usernameController,
+                      autocorrect: false,
+                      decoration: const InputDecoration(labelText: 'Usuario'),
+                    ),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        labelText: 'Contraseña de aplicación',
+                        helperText: existing?.appPassword.isNotEmpty == true
+                            ? 'Déjala vacía para conservar la guardada.'
+                            : 'Créala desde Seguridad en Nextcloud.',
+                        errorText: validationError,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'La contraseña se guarda cifrada en el almacenamiento seguro del dispositivo.',
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final serverUrl = serverController.text.trim();
+                    final username = usernameController.text.trim();
+                    final uri = Uri.tryParse(serverUrl);
+                    if (uri == null ||
+                        !uri.hasAuthority ||
+                        uri.host.isEmpty ||
+                        uri.scheme != 'https' ||
+                        uri.hasQuery ||
+                        uri.hasFragment ||
+                        uri.userInfo.isNotEmpty) {
+                      setDialogState(
+                        () => validationError =
+                            'Usa una URL segura que empiece por https://.',
+                      );
+                      return;
+                    }
+                    if (username.isEmpty) {
+                      setDialogState(
+                        () =>
+                            validationError = 'Indica el usuario de Nextcloud.',
+                      );
+                      return;
+                    }
+                    if (passwordController.text.isEmpty &&
+                        existing?.appPassword.isNotEmpty != true) {
+                      setDialogState(
+                        () => validationError =
+                            'Introduce una contraseña de aplicación.',
+                      );
+                      return;
+                    }
+                    Navigator.pop(dialogContext, (
+                      serverUrl: serverUrl,
+                      username: username,
+                      appPassword: passwordController.text,
+                    ));
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            ),
+          ),
+        );
+    serverController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
+    if (!mounted || configuration == null) return false;
+
+    try {
+      await _nextcloud.saveConnection(
+        serverUrl: configuration.serverUrl,
+        username: configuration.username,
+        appPassword: configuration.appPassword,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Conexión de Nextcloud guardada.')),
+        );
+      }
+      return true;
+    } catch (error) {
+      if (mounted) _showError('No se pudo guardar la conexión: $error');
+      return false;
+    }
+  }
+
+  Future<void> _syncWithNextcloud() async {
+    try {
+      var connection = await _nextcloud.loadConnection();
+      if (connection == null || connection.appPassword.isEmpty) {
+        if (!await _configureNextcloud()) return;
+        connection = await _nextcloud.loadConnection();
+      }
+      if (connection == null || connection.appPassword.isEmpty) return;
+
+      setState(() {
+        _isNextcloudSyncing = true;
+        _isLoading = true;
+      });
+      final books = await _storage.loadBooks();
+      final result = await _nextcloud.syncLibrary(books);
+      final refreshedBooks = await _storage.loadBooks();
+      if (!mounted) return;
+      setState(() {
+        _books
+          ..clear()
+          ..addAll(refreshedBooks);
+        _isLoading = false;
+      });
+      final message = result.uploadedBooks == 0 && result.downloadedBooks == 0
+          ? 'Biblioteca y lectura sincronizadas con Nextcloud.'
+          : 'Nextcloud: ${result.uploadedBooks} EPUB enviados, ${result.downloadedBooks} recibidos.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (error) {
+      if (mounted) setState(() => _isLoading = false);
+      if (mounted) _showError('No se pudo sincronizar con Nextcloud: $error');
+    } finally {
+      if (mounted) setState(() => _isNextcloudSyncing = false);
+    }
+  }
+
+  void _handleNextcloudAction(_NextcloudAction action) {
+    switch (action) {
+      case _NextcloudAction.sync:
+        _syncWithNextcloud();
+      case _NextcloudAction.configure:
+        _configureNextcloud();
+    }
   }
 
   Future<void> _openSettings() async {
@@ -275,6 +456,43 @@ class _LibraryPageState extends State<LibraryPage> {
       appBar: AppBar(
         title: const Text('EduReader'),
         actions: [
+          PopupMenuButton<_NextcloudAction>(
+            tooltip: 'Sincronización Nextcloud',
+            enabled: !_isNextcloudSyncing,
+            onSelected: _handleNextcloudAction,
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _NextcloudAction.sync,
+                child: Row(
+                  children: [
+                    const Icon(Icons.sync),
+                    const SizedBox(width: 12),
+                    Text(
+                      _isNextcloudSyncing
+                          ? 'Sincronizando…'
+                          : 'Sincronizar biblioteca',
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: _NextcloudAction.configure,
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_outlined),
+                    SizedBox(width: 12),
+                    Text('Configurar Nextcloud'),
+                  ],
+                ),
+              ),
+            ],
+            icon: _isNextcloudSyncing
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.cloud_sync_outlined),
+          ),
           IconButton(
             onPressed: _openSettings,
             tooltip: 'Ajustes',
@@ -302,7 +520,7 @@ class _LibraryPageState extends State<LibraryPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isLoading ? null : _pickEpub,
+        onPressed: _isLoading || _isNextcloudSyncing ? null : _pickEpub,
         icon: const Icon(Icons.add),
         label: const Text('Añadir EPUB'),
       ),

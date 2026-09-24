@@ -66,6 +66,14 @@ incrementales y solo envían anotaciones posteriores a la última sincronizació
 correcta. La configuración predeterminada apunta al servidor FreeWise configurado
 (`http://freewise.example.com`). Si falla la red, el intento queda pendiente.
 
+La biblioteca ofrece sincronización manual con Nextcloud por WebDAV. Se
+configura el servidor HTTPS, el usuario y una contraseña de aplicación; esta
+última se guarda en el almacén seguro del sistema. EduReader sube y descarga
+los EPUB, los deduplica por SHA-256 y sincroniza el localizador de lectura y los
+marcadores, usando la última modificación cuando hay cambios en ambos
+dispositivos. La sincronización de anotaciones y ajustes queda para una fase
+posterior. La conexión todavía debe validarse con un servidor Nextcloud real.
+
 La biblioteca permite filtrar por título o autor y ordenar por incorporación,
 título o autor; estas operaciones solo cambian la vista y no alteran los EPUB.
 

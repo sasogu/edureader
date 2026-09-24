@@ -21,6 +21,8 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 - Navegación por porcentaje del progreso total del libro, en saltos del 1 %.
 - Controles iniciales de lectura en voz alta con Readium: reproducción/pausa,
   salto de frase y velocidad ajustable.
+- Sincronización manual Nextcloud/WebDAV en implementación: EPUB por hash,
+  localizador y marcadores; credenciales en almacenamiento seguro del sistema.
 - APK `arm64-v8a` de lanzamiento generada el 2026-09-24; falta probar en el
   teléfono búsqueda, marcadores, progreso, personalización y lectura en voz alta.
 
@@ -56,25 +58,24 @@ reorganizan la vista y no modifican los archivos locales.
 **Comprobación:** importar varios EPUB, ordenar y filtrar; cerrar y volver a
 abrir la app para confirmar que la biblioteca permanece intacta.
 
-### 4. Sincronización entre dispositivos
+### 4. Sincronización entre dispositivos (implementación inicial)
 
-Permitir continuar la lectura en otro dispositivo y recuperar la biblioteca y
-los datos asociados. Definir el alcance por fases: primero progreso y
-marcadores; después ajustes y anotaciones. Mantener el almacenamiento local
-como fuente utilizable sin conexión y resolver conflictos de cambios offline.
-Como backend preferido, evaluar Nextcloud mediante su API WebDAV para guardar
-los datos de sincronización en una carpeta privada del usuario. La autenticación
-deberá usar una contraseña de aplicación y almacenarse de forma segura en el
-dispositivo; nunca guardar credenciales en el repositorio ni en los registros.
-Esta función es distinta de la sincronización actual de anotaciones con
-FreeWise. Antes de implementarla hay que definir la identidad/cuenta de Nextcloud,
-el formato y versión de los datos remotos. Se sincronizarán los propios archivos
-EPUB junto con sus metadatos y el estado de lectura.
+La primera fase ya incluye sincronización manual por Nextcloud WebDAV de los
+archivos EPUB (deduplicados por SHA-256), localizadores y marcadores. El
+manifiesto remoto lleva versión de esquema y marcas de modificación; las
+descargas se verifican antes de importar. La autenticación exige HTTPS y usa
+una contraseña de aplicación guardada en el almacén seguro del dispositivo.
+Es una función independiente de la exportación de anotaciones a FreeWise.
 
-**Comprobación:** abrir la misma cuenta en dos dispositivos, avanzar en uno y
-recuperar progreso y marcadores en el otro; probar cambios en ambos sin red,
-reconexión, deduplicación de EPUB por hash, transferencia interrumpida, borrado
-y protección de datos de cuenta.
+**Pendiente:** validar con un Nextcloud real, resolver casos de sincronización
+simultánea/reintentos y añadir ajustes y anotaciones en una fase posterior. La
+biblioteca local sigue disponible sin conexión; el borrado remoto no se propaga
+para evitar eliminar libros por accidente.
+
+**Comprobación:** abrir la misma cuenta en dos dispositivos, confirmar subida y
+descarga de EPUB, continuar desde otra posición y recuperar marcadores; probar
+cambios offline, reintentos, deduplicación, transferencia interrumpida y
+credenciales inválidas. Verificar que el borrado local no borra la copia remota.
 
 ## Notas técnicas para retomar
 
