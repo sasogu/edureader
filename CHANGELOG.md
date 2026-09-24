@@ -6,6 +6,7 @@ Este proyecto sigue una versión simplificada de [Keep a Changelog](https://keep
 
 ### Añadido
 
+- Acción alternativa de subrayado desde la barra superior y el aviso de texto seleccionado.
 - Guardado local de subrayados al seleccionar texto.
 - Guardado local de notas asociadas al texto seleccionado.
 - Asociación de anotaciones con el libro y capítulo correspondientes.

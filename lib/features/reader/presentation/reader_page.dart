@@ -20,6 +20,8 @@ class _ReaderPageState extends State<ReaderPage> {
   final FreeWiseSync _sync = FreeWiseSync();
   ReadingProgress? _progress;
   bool _isLoadingProgress = true;
+  String? _selectedText;
+  int _currentChapterIndex = 0;
 
   @override
   void initState() {
@@ -69,6 +71,39 @@ class _ReaderPageState extends State<ReaderPage> {
         chapterIndex: chapterIndex,
         selectedText: selectedText,
         content: noteContent,
+      ),
+    );
+  }
+
+  Future<void> _saveSelectedHighlight() async {
+    final text = _selectedText;
+    if (text == null || text.trim().isEmpty) return;
+
+    await HighlightService.saveHighlight(
+      Highlight.create(
+        bookId: widget.book.id,
+        chapterIndex: _currentChapterIndex,
+        text: text,
+        color: const Color(0xFFFDD835),
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _selectedText = null);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Subrayado guardado.')));
+  }
+
+  void _handleTextSelected(String text) {
+    if (text.trim().isEmpty) return;
+    setState(() => _selectedText = text);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Texto seleccionado'),
+        action: SnackBarAction(
+          label: 'SUBRAYAR',
+          onPressed: _saveSelectedHighlight,
+        ),
       ),
     );
   }
@@ -154,6 +189,11 @@ class _ReaderPageState extends State<ReaderPage> {
         title: Text(widget.book.metadata.title),
         actions: [
           IconButton(
+            onPressed: _selectedText == null ? null : _saveSelectedHighlight,
+            tooltip: 'Subrayar selección',
+            icon: const Icon(Icons.highlight_outlined),
+          ),
+          IconButton(
             onPressed: _exportAnnotations,
             tooltip: 'Exportar a FreeWise',
             icon: const Icon(Icons.ios_share_outlined),
@@ -173,6 +213,10 @@ class _ReaderPageState extends State<ReaderPage> {
         showTableOfContents: true,
         onProgressChanged: _saveProgress,
         onNoteSaved: _saveNote,
+        onTextSelected: _handleTextSelected,
+        onChapterChanged: (chapterIndex) {
+          _currentChapterIndex = chapterIndex;
+        },
       ),
     );
   }
