@@ -19,8 +19,10 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 - Búsqueda en EPUB con resultados por capítulo, fragmento de contexto y salto
   directo a la coincidencia en Android/iOS.
 - Navegación por porcentaje del progreso total del libro, en saltos del 1 %.
-- Falta probar búsqueda, marcadores, progreso, pantalla completa y los nuevos
-  ajustes de lectura en el teléfono. No se ha generado una APK en esta sesión.
+- Controles iniciales de lectura en voz alta con Readium: reproducción/pausa,
+  salto de frase y velocidad ajustable.
+- APK `arm64-v8a` de lanzamiento generada el 2026-09-24; falta probar en el
+  teléfono búsqueda, marcadores, progreso, personalización y lectura en voz alta.
 
 ## Pendiente, por prioridad
 
@@ -53,6 +55,26 @@ reorganizan la vista y no modifican los archivos locales.
 
 **Comprobación:** importar varios EPUB, ordenar y filtrar; cerrar y volver a
 abrir la app para confirmar que la biblioteca permanece intacta.
+
+### 4. Sincronización entre dispositivos
+
+Permitir continuar la lectura en otro dispositivo y recuperar la biblioteca y
+los datos asociados. Definir el alcance por fases: primero progreso y
+marcadores; después ajustes y anotaciones. Mantener el almacenamiento local
+como fuente utilizable sin conexión y resolver conflictos de cambios offline.
+Como backend preferido, evaluar Nextcloud mediante su API WebDAV para guardar
+los datos de sincronización en una carpeta privada del usuario. La autenticación
+deberá usar una contraseña de aplicación y almacenarse de forma segura en el
+dispositivo; nunca guardar credenciales en el repositorio ni en los registros.
+Esta función es distinta de la sincronización actual de anotaciones con
+FreeWise. Antes de implementarla hay que definir la identidad/cuenta de Nextcloud,
+el formato y versión de los datos remotos. Se sincronizarán los propios archivos
+EPUB junto con sus metadatos y el estado de lectura.
+
+**Comprobación:** abrir la misma cuenta en dos dispositivos, avanzar en uno y
+recuperar progreso y marcadores en el otro; probar cambios en ambos sin red,
+reconexión, deduplicación de EPUB por hash, transferencia interrumpida, borrado
+y protección de datos de cuenta.
 
 ## Notas técnicas para retomar
 
