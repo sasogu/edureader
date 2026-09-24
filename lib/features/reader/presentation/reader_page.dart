@@ -31,6 +31,7 @@ class _ReaderPageState extends State<ReaderPage> {
   StreamSubscription<Locator>? _locatorSubscription;
   String? _error;
   bool _isLoading = true;
+  bool _isSavingHighlight = false;
 
   @override
   void initState() {
@@ -87,7 +88,9 @@ class _ReaderPageState extends State<ReaderPage> {
 
   Future<void> _saveHighlight(Locator locator, String? selectedText) async {
     final text = selectedText ?? locator.text?.highlight ?? '';
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || _isSavingHighlight) return;
+
+    setState(() => _isSavingHighlight = true);
 
     final decoration = ReaderDecoration(
       id: 'highlight_${DateTime.now().microsecondsSinceEpoch}',
@@ -97,24 +100,41 @@ class _ReaderPageState extends State<ReaderPage> {
         tint: Color(0x80FFF176),
       ),
     );
-    _decorations = [..._decorations, decoration];
-    await _storage.saveDecorations(widget.book.id, _decorations);
-    await _readium.applyDecorations('edureader', _decorations);
-
-    await HighlightService.saveHighlight(
-      Highlight.create(
-        bookId: widget.book.id,
-        chapterIndex: _chapterIndex(locator),
-        text: text,
-        color: const Color(0xFFFDD835),
-      ),
-    );
-    if (mounted) {
+    final decorations = [..._decorations, decoration];
+    try {
+      await _storage.saveDecorations(widget.book.id, decorations);
+      await _readium.applyDecorations('edureader', decorations);
+      await HighlightService.saveHighlight(
+        Highlight.create(
+          bookId: widget.book.id,
+          chapterIndex: _chapterIndex(locator),
+          text: text,
+          color: const Color(0xFFFDD835),
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _decorations = decorations;
+        _selectedTextEvent = null;
+        _isSavingHighlight = false;
+      });
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Subrayado guardado.')));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSavingHighlight = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo guardar el subrayado: $error')),
+      );
     }
-    if (mounted) setState(() => _selectedTextEvent = null);
+  }
+
+  Future<void> _saveCurrentSelection() async {
+    final selection = _selectedTextEvent;
+    if (selection != null) {
+      await _saveHighlight(selection.locator, selection.selectedText);
+    }
   }
 
   Future<void> _applyHighlight(SelectionActionEvent event) {
@@ -272,19 +292,6 @@ class _ReaderPageState extends State<ReaderPage> {
         titleSpacing: 4,
         title: Text(widget.book.metadata.title),
         actions: [
-          if (_selectedTextEvent != null)
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              iconSize: 21,
-              onPressed: () {
-                final selection = _selectedTextEvent;
-                if (selection != null) {
-                  _saveHighlight(selection.locator, selection.selectedText);
-                }
-              },
-              tooltip: 'Subrayar selección',
-              icon: const Icon(Icons.highlight_alt_outlined),
-            ),
           IconButton(
             visualDensity: VisualDensity.compact,
             iconSize: 21,
@@ -302,6 +309,18 @@ class _ReaderPageState extends State<ReaderPage> {
         ],
       ),
       body: _buildBody(),
+      floatingActionButton: _selectedTextEvent == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _isSavingHighlight ? null : _saveCurrentSelection,
+              icon: _isSavingHighlight
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.highlight_alt_outlined),
+              label: Text(_isSavingHighlight ? 'Guardando…' : 'Subrayar'),
+            ),
     );
   }
 
