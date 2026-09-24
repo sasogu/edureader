@@ -22,9 +22,10 @@ Siguiente vertical:
 La biblioteca persistida guarda una copia privada de cada EPUB dentro de la
 aplicación y registra sus rutas con `shared_preferences`. El progreso de lectura
 también se guarda por libro, capítulo y posición. El motor de lectura actual es
-`advanced_epub_reader`; su integración queda aislada en
-`features/reader/presentation/reader_page.dart` para poder cambiarla sin
-reorganizar la aplicación.
+`flutter_readium`, con paginación horizontal real, selección de texto y
+decoraciones persistentes. La integración queda aislada en
+`features/reader/presentation/reader_page.dart`; el parser de EPUB anterior se
+mantiene como puente temporal para la biblioteca y la exportación.
 
 Los subrayados se guardan mediante el servicio local del lector y las notas se
 conectan explícitamente desde EduReader. Ambos quedan asociados al libro y al
@@ -40,6 +41,11 @@ servidor y la guarda localmente. Las siguientes sincronizaciones son
 incrementales y solo envían anotaciones posteriores a la última sincronización
 correcta. La configuración predeterminada apunta al servidor FreeWise configurado
 (`http://freewise.example.com`). Si falla la red, el intento queda pendiente.
+
+La configuración nativa de Readium requiere Android con `minSdk 24`,
+`FlutterFragmentActivity` y desugaring de la biblioteca estándar. En iOS se
+incluyen los pods de Readium con despliegue mínimo en iOS 15. En web se carga
+el adaptador `web/readiumReader.js` generado por `flutter_readium`.
 
 El alcance inicial es deliberadamente solo EPUB. PDF, DRM, audiolibros y
 funciones avanzadas quedan fuera hasta que el flujo básico sea sólido.

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_readium/flutter_readium.dart';
 
 import '../data/freewise_exporter.dart';
 import '../data/freewise_sync.dart';
-import '../data/reading_progress_storage.dart';
+import '../data/readium_storage.dart';
 
 class ReaderPage extends StatefulWidget {
   const ReaderPage({required this.book, super.key});
@@ -15,113 +19,161 @@ class ReaderPage extends StatefulWidget {
 }
 
 class _ReaderPageState extends State<ReaderPage> {
-  final ReadingProgressStorage _progressStorage = ReadingProgressStorage();
+  final FlutterReadium _readium = FlutterReadium();
+  final ReadiumStorage _storage = ReadiumStorage();
   final FreeWiseExporter _exporter = FreeWiseExporter();
   final FreeWiseSync _sync = FreeWiseSync();
-  ReadingProgress? _progress;
-  bool _isLoadingProgress = true;
-  String? _selectedText;
-  int _currentChapterIndex = 0;
-  int _currentBookPage = 1;
-  int? _totalBookPages;
+
+  Publication? _publication;
+  Locator? _initialLocator;
+  List<ReaderDecoration> _decorations = [];
+  StreamSubscription<Locator>? _locatorSubscription;
+  String? _error;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadProgress();
-    _syncIfConfigured();
+    _openPublication();
   }
 
-  Future<void> _loadProgress() async {
-    final progress = await _progressStorage.load(widget.book.id);
-    if (!mounted) return;
-    setState(() {
-      _progress = progress;
-      _currentBookPage = progress?.currentPage ?? 1;
-      _totalBookPages = progress?.totalPages;
-      _isLoadingProgress = false;
-    });
+  @override
+  void dispose() {
+    _locatorSubscription?.cancel();
+    _readium.closePublication();
+    super.dispose();
   }
 
-  void _saveProgress(ReadingProgress progress) {
-    if (progress.currentPage != null) {
-      _currentBookPage = progress.currentPage!;
+  Future<void> _openPublication() async {
+    final path = widget.book.filePath;
+    if (path == null || path.isEmpty) {
+      setState(() {
+        _error = 'El EPUB no tiene una ruta local disponible.';
+        _isLoading = false;
+      });
+      return;
     }
-    _totalBookPages = progress.totalPages ?? _totalBookPages;
-    _progressStorage.save(progress);
-  }
-
-  void _turnPage(int direction) {
-    final targetPage = (_currentBookPage + direction)
-        .clamp(1, _totalBookPages ?? 1000000)
-        .toInt();
-    if (targetPage == _currentBookPage) return;
-    setState(() => _currentBookPage = targetPage);
-  }
-
-  Future<void> _syncIfConfigured() async {
-    final baseUrl = await _sync.getBaseUrl();
-    if (baseUrl == null || baseUrl.isEmpty) return;
 
     try {
-      final count = await _sync.syncBook(widget.book);
-      if (!mounted || count == 0) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nuevas anotaciones sincronizadas.')),
-      );
-    } catch (_) {
-      // La sincronización automática es silenciosa; el botón permite reintentar.
+      _readium.setDefaultPreferences(const EPUBPreferences(scroll: false));
+      final publication = await _readium.openPublication(path);
+      final locator = await _storage.loadLocator(widget.book.id);
+      final decorations = await _storage.loadDecorations(widget.book.id);
+      if (!mounted) return;
+
+      setState(() {
+        _publication = publication;
+        _initialLocator = locator;
+        _decorations = decorations;
+        _isLoading = false;
+      });
+
+      _locatorSubscription = _readium.onTextLocatorChanged.listen((locator) {
+        _storage.saveLocator(widget.book.id, locator);
+      });
+      if (decorations.isNotEmpty) {
+        await _readium.applyDecorations('edureader', decorations);
+      }
+      _syncIfConfigured();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'No se ha podido abrir el EPUB con Readium: $error';
+        _isLoading = false;
+      });
     }
   }
 
-  void _saveNote({
-    required int chapterIndex,
-    required double position,
-    required String selectedText,
-    required String noteContent,
-    String? color,
-  }) {
-    NoteService.saveNote(
-      Note.create(
-        bookId: widget.book.id,
-        chapterIndex: chapterIndex,
-        selectedText: selectedText,
-        content: noteContent,
+  Future<void> _applyHighlight(SelectionActionEvent event) async {
+    final text = event.selectedText ?? event.locator.text?.highlight ?? '';
+    if (text.trim().isEmpty) return;
+
+    final decoration = ReaderDecoration(
+      id: 'highlight_${DateTime.now().microsecondsSinceEpoch}',
+      locator: event.locator,
+      style: const ReaderDecorationStyle(
+        style: DecorationStyle.highlight,
+        tint: Color(0x80FFF176),
       ),
     );
-  }
-
-  Future<void> _saveSelectedHighlight() async {
-    final text = _selectedText;
-    if (text == null || text.trim().isEmpty) return;
+    _decorations = [..._decorations, decoration];
+    await _storage.saveDecorations(widget.book.id, _decorations);
+    await _readium.applyDecorations('edureader', _decorations);
 
     await HighlightService.saveHighlight(
       Highlight.create(
         bookId: widget.book.id,
-        chapterIndex: _currentChapterIndex,
+        chapterIndex: _chapterIndex(event.locator),
         text: text,
         color: const Color(0xFFFDD835),
       ),
     );
-    if (!mounted) return;
-    setState(() => _selectedText = null);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Subrayado guardado.')));
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Subrayado guardado.')));
+    }
   }
 
-  void _handleTextSelected(String text) {
-    if (text.trim().isEmpty) return;
-    setState(() => _selectedText = text);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Texto seleccionado'),
-        action: SnackBarAction(
-          label: 'SUBRAYAR',
-          onPressed: _saveSelectedHighlight,
+  Future<void> _applyNote(SelectionActionEvent event) async {
+    final text = event.selectedText ?? event.locator.text?.highlight ?? '';
+    if (text.trim().isEmpty || !mounted) return;
+
+    final controller = TextEditingController();
+    final note = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Añadir nota'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 5,
+          decoration: const InputDecoration(hintText: 'Escribe una nota'),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Guardar'),
+          ),
+        ],
       ),
     );
+    controller.dispose();
+    if (note == null || note.trim().isEmpty) return;
+
+    await NoteService.saveNote(
+      Note.create(
+        bookId: widget.book.id,
+        chapterIndex: _chapterIndex(event.locator),
+        selectedText: text,
+        content: note.trim(),
+      ),
+    );
+  }
+
+  Future<void> _handleSelectionAction(SelectionActionEvent event) async {
+    switch (event.actionId) {
+      case 'copy':
+        final text = event.selectedText ?? event.locator.text?.highlight ?? '';
+        await Clipboard.setData(ClipboardData(text: text));
+      case 'highlight':
+        await _applyHighlight(event);
+      case 'note':
+        await _applyNote(event);
+    }
+  }
+
+  int _chapterIndex(Locator locator) {
+    final index = widget.book.chapters.indexWhere(
+      (chapter) =>
+          locator.href.endsWith(chapter.filePath) ||
+          chapter.filePath.endsWith(locator.href),
+    );
+    return index < 0 ? 0 : index;
   }
 
   Future<void> _exportAnnotations() async {
@@ -132,10 +184,21 @@ class _ReaderPageState extends State<ReaderPage> {
     );
   }
 
+  Future<void> _syncIfConfigured() async {
+    final baseUrl = await _sync.getBaseUrl();
+    if (baseUrl == null || baseUrl.isEmpty) return;
+    try {
+      final count = await _sync.syncBook(widget.book);
+      if (!mounted || count == 0) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nuevas anotaciones sincronizadas.')),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _syncAnnotations() async {
     var baseUrl = await _sync.getBaseUrl();
     if (!mounted) return;
-
     if (baseUrl == null || baseUrl.isEmpty) {
       final controller = TextEditingController(
         text: 'http://freewise.example.com',
@@ -148,10 +211,7 @@ class _ReaderPageState extends State<ReaderPage> {
             controller: controller,
             autofocus: true,
             keyboardType: TextInputType.url,
-            decoration: const InputDecoration(
-              labelText: 'URL del servidor',
-              hintText: 'http://freewise.example.com',
-            ),
+            decoration: const InputDecoration(labelText: 'URL del servidor'),
           ),
           actions: [
             TextButton(
@@ -195,20 +255,10 @@ class _ReaderPageState extends State<ReaderPage> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = _progress;
-    if (_isLoadingProgress) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.book.metadata.title),
         actions: [
-          IconButton(
-            onPressed: _selectedText == null ? null : _saveSelectedHighlight,
-            tooltip: 'Subrayar selección',
-            icon: const Icon(Icons.highlight_outlined),
-          ),
           IconButton(
             onPressed: _exportAnnotations,
             tooltip: 'Exportar a FreeWise',
@@ -221,32 +271,36 @@ class _ReaderPageState extends State<ReaderPage> {
           ),
         ],
       ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          if (velocity.abs() < 150) return;
-          _turnPage(velocity < 0 ? 1 : -1);
-        },
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          child: EpubViewer(
-            key: ValueKey(_currentBookPage),
-            book: widget.book,
-            initialBookPage: _currentBookPage,
-            initialChapterIndex: progress?.currentChapterIndex ?? 0,
-            initialPosition: progress?.chapterProgress ?? 0,
-            showControls: true,
-            showTableOfContents: true,
-            onProgressChanged: _saveProgress,
-            onNoteSaved: _saveNote,
-            onTextSelected: _handleTextSelected,
-            onChapterChanged: (chapterIndex) {
-              _currentChapterIndex = chapterIndex;
-            },
-          ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(_error!, textAlign: TextAlign.center),
         ),
-      ),
+      );
+    }
+
+    final publication = _publication;
+    if (publication == null) return const SizedBox.shrink();
+    return ReadiumReaderWidget(
+      publication: publication,
+      initialLocator: _initialLocator,
+      allowedDefaultActions: const {
+        DefaultSelectionAction.copy,
+        DefaultSelectionAction.share,
+      },
+      selectionActions: const [
+        SelectionAction(id: 'copy', title: 'Copiar'),
+        SelectionAction(id: 'highlight', title: 'Subrayar'),
+        SelectionAction(id: 'note', title: 'Nota'),
+      ],
+      onSelectionAction: _handleSelectionAction,
     );
   }
 }

@@ -6,6 +6,8 @@ Este proyecto sigue una versión simplificada de [Keep a Changelog](https://keep
 
 ### Añadido
 
+- Migración del lector a `flutter_readium`.
+- Paginación horizontal nativa con conservación de locators y decoraciones.
 - Cambio de página mediante deslizamiento horizontal táctil.
 - Acción alternativa de subrayado desde la barra superior y el aviso de texto seleccionado.
 - Guardado local de subrayados al seleccionar texto.

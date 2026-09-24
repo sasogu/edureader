@@ -41,6 +41,7 @@ dependencies:
   shared_preferences: ^2.5.5
   csv: ^6.0.0
   http: ^1.6.0
+  flutter_readium: ^0.3.3
 
 dependency_overrides:
   # flutter_html 3.0.0 usa la API antigua de query_selector.
