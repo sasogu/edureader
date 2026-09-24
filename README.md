@@ -36,8 +36,10 @@ Readwise/FreeWise y fechas ISO con zona horaria UTC.
 
 También existe sincronización directa: el botón de nube envía el CSV al
 endpoint de importación de FreeWise. La primera vez solicita la URL del
-servidor y la guarda localmente. La configuración predeterminada apunta al
-servidor FreeWise configurado (`http://freewise.example.com`).
+servidor y la guarda localmente. Las siguientes sincronizaciones son
+incrementales y solo envían anotaciones posteriores a la última sincronización
+correcta. La configuración predeterminada apunta al servidor FreeWise configurado
+(`http://freewise.example.com`). Si falla la red, el intento queda pendiente.
 
 El alcance inicial es deliberadamente solo EPUB. PDF, DRM, audiolibros y
 funciones avanzadas quedan fuera hasta que el flujo básico sea sólido.

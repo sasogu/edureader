@@ -12,6 +12,7 @@ Este proyecto sigue una versión simplificada de [Keep a Changelog](https://keep
 - Exportación CSV compatible con FreeWise desde la pantalla de lectura.
 - Sincronización directa con el endpoint de importación de FreeWise.
 - Configuración persistente de la URL de FreeWise.
+- Sincronización incremental con reintento implícito si falla la red.
 
 ## [0.1.0] - 2026-09-24
 

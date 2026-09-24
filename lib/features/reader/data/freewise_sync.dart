@@ -6,6 +6,7 @@ import 'freewise_exporter.dart';
 
 class FreeWiseSync {
   static const _urlKey = 'freewise_base_url';
+  static const _lastSyncPrefix = 'freewise_last_sync_';
 
   final FreeWiseExporter _exporter = FreeWiseExporter();
 
@@ -25,7 +26,13 @@ class FreeWiseSync {
       throw StateError('Configura primero la URL de FreeWise.');
     }
 
-    final bytes = await _exporter.buildCsvBytes(book);
+    final preferences = await SharedPreferences.getInstance();
+    final lastSyncValue = preferences.getString(_lastSyncKey(book.id));
+    final lastSync = lastSyncValue == null
+        ? null
+        : DateTime.tryParse(lastSyncValue);
+    final syncStartedAt = DateTime.now().toUtc();
+    final bytes = await _exporter.buildCsvBytes(book, since: lastSync);
     if (bytes == null) return 0;
 
     final request =
@@ -43,8 +50,14 @@ class FreeWiseSync {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('FreeWise respondió con HTTP ${response.statusCode}.');
     }
+    await preferences.setString(
+      _lastSyncKey(book.id),
+      syncStartedAt.toIso8601String(),
+    );
     return 1;
   }
+
+  String _lastSyncKey(String bookId) => '$_lastSyncPrefix$bookId';
 
   String _normalise(String value) {
     var result = value.trim();

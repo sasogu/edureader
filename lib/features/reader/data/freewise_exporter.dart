@@ -6,13 +6,13 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 
 class FreeWiseExporter {
-  Future<Uint8List?> buildCsvBytes(EpubBook book) async {
-    final csv = await buildCsv(book);
+  Future<Uint8List?> buildCsvBytes(EpubBook book, {DateTime? since}) async {
+    final csv = await buildCsv(book, since: since);
     return csv == null ? null : Uint8List.fromList(utf8.encode(csv));
   }
 
-  Future<String?> buildCsv(EpubBook book) async {
-    final rows = await _buildRows(book);
+  Future<String?> buildCsv(EpubBook book, {DateTime? since}) async {
+    final rows = await _buildRows(book, since: since);
     if (rows.length == 1) return null;
     return const ListToCsvConverter().convert(rows);
   }
@@ -32,9 +32,15 @@ class FreeWiseExporter {
     return savedPath == null ? null : rows.length - 1;
   }
 
-  Future<List<List<String>>> _buildRows(EpubBook book) async {
+  Future<List<List<String>>> _buildRows(
+    EpubBook book, {
+    DateTime? since,
+  }) async {
     final highlights = await HighlightService.getHighlights(book.id);
-    final notes = await NoteService.getNotes(book.id);
+    final allNotes = await NoteService.getNotes(book.id);
+    final notes = since == null
+        ? allNotes
+        : allNotes.where((note) => note.createdAt.isAfter(since)).toList();
     final notesByText = <String, List<Note>>{};
 
     for (final note in notes) {
@@ -61,6 +67,11 @@ class FreeWiseExporter {
 
     for (final highlight in highlights) {
       final matchingNotes = notesByText[highlight.text] ?? const <Note>[];
+      if (since != null &&
+          !highlight.createdAt.isAfter(since) &&
+          matchingNotes.isEmpty) {
+        continue;
+      }
       final note = matchingNotes.isEmpty ? '' : matchingNotes.first.content;
       rows.add(
         _row(

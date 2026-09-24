@@ -25,6 +25,7 @@ class _ReaderPageState extends State<ReaderPage> {
   void initState() {
     super.initState();
     _loadProgress();
+    _syncIfConfigured();
   }
 
   Future<void> _loadProgress() async {
@@ -38,6 +39,21 @@ class _ReaderPageState extends State<ReaderPage> {
 
   void _saveProgress(ReadingProgress progress) {
     _progressStorage.save(progress);
+  }
+
+  Future<void> _syncIfConfigured() async {
+    final baseUrl = await _sync.getBaseUrl();
+    if (baseUrl == null || baseUrl.isEmpty) return;
+
+    try {
+      final count = await _sync.syncBook(widget.book);
+      if (!mounted || count == 0) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nuevas anotaciones sincronizadas.')),
+      );
+    } catch (_) {
+      // La sincronización automática es silenciosa; el botón permite reintentar.
+    }
   }
 
   void _saveNote({
