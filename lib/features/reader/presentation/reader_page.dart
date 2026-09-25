@@ -41,6 +41,7 @@ class _ReaderPageState extends State<ReaderPage> {
   List<ReaderBookmark> _bookmarks = [];
   TextSelectionEvent? _selectedTextEvent;
   StreamSubscription<Locator>? _locatorSubscription;
+  Future<void> _locatorSaveQueue = Future<void>.value();
   String? _error;
   bool _isLoading = true;
   bool _isSavingHighlight = false;
@@ -71,6 +72,17 @@ class _ReaderPageState extends State<ReaderPage> {
 
   Future<void> _toggleFullscreen() async {
     final enteringFullscreen = !_isFullscreen;
+    try {
+      await _persistCurrentLocator();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo guardar la posición actual: $error'),
+          ),
+        );
+      }
+    }
     await SystemChrome.setEnabledSystemUIMode(
       enteringFullscreen
           ? SystemUiMode.immersiveSticky
@@ -861,11 +873,12 @@ class _ReaderPageState extends State<ReaderPage> {
 
       _locatorSubscription = _readium.onTextLocatorChanged.listen((locator) {
         _currentLocator = locator;
+        _initialLocator = locator;
+        _queueLocatorSave(locator);
         final progression = locator.locations?.totalProgression;
         if (progression != null && mounted) {
           setState(() => _readingProgress = progression.clamp(0.0, 1.0));
         }
-        _storage.saveLocator(widget.book.id, locator);
       });
       if (decorations.isNotEmpty) {
         await _readium.applyDecorations('edureader', decorations);
@@ -877,6 +890,23 @@ class _ReaderPageState extends State<ReaderPage> {
         _error = 'No se ha podido abrir el EPUB con Readium: $error';
         _isLoading = false;
       });
+    }
+  }
+
+  void _queueLocatorSave(Locator locator) {
+    _locatorSaveQueue = _locatorSaveQueue
+        .catchError((Object _) {})
+        .then((_) => _storage.saveLocator(widget.book.id, locator));
+  }
+
+  Future<void> _persistCurrentLocator() async {
+    final locator = _currentLocator;
+    if (locator != null) {
+      _queueLocatorSave(locator);
+      await _locatorSaveQueue;
+      _initialLocator = locator;
+    } else {
+      await _locatorSaveQueue;
     }
   }
 
@@ -1184,29 +1214,28 @@ class _ReaderPageState extends State<ReaderPage> {
                 ),
               ],
             ),
-      body: _isFullscreen
-          ? Stack(
-              children: [
-                Positioned.fill(child: _buildBody()),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: SafeArea(
-                    child: Material(
-                      elevation: 3,
-                      color: Theme.of(context).colorScheme.surface,
-                      shape: const CircleBorder(),
-                      child: IconButton(
-                        onPressed: _toggleFullscreen,
-                        tooltip: 'Salir de pantalla completa',
-                        icon: const Icon(Icons.fullscreen_exit),
-                      ),
-                    ),
+      body: Stack(
+        children: [
+          Positioned.fill(child: _buildBody()),
+          if (_isFullscreen)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: SafeArea(
+                child: Material(
+                  elevation: 3,
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    onPressed: _toggleFullscreen,
+                    tooltip: 'Salir de pantalla completa',
+                    icon: const Icon(Icons.fullscreen_exit),
                   ),
                 ),
-              ],
-            )
-          : _buildBody(),
+              ),
+            ),
+        ],
+      ),
       floatingActionButton: _selectedTextEvent == null
           ? null
           : FloatingActionButton.extended(

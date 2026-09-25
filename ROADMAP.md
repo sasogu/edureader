@@ -21,14 +21,39 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 - Navegación por porcentaje del progreso total del libro, en saltos del 1 %.
 - Controles iniciales de lectura en voz alta con Readium: reproducción/pausa,
   salto de frase y velocidad ajustable.
-- Sincronización manual Nextcloud/WebDAV en implementación: EPUB por hash,
-  localizador y marcadores; credenciales en almacenamiento seguro del sistema.
-- APK `arm64-v8a` de lanzamiento generada el 2026-09-24; falta probar en el
-  teléfono búsqueda, marcadores, progreso, personalización y lectura en voz alta.
+- Sincronización manual Nextcloud/WebDAV implementada: EPUB por SHA-256,
+  localizador y marcadores; contraseña de aplicación en almacenamiento seguro.
+- Verificación de código tras la sincronización: `flutter analyze` limpio y
+  `flutter test` con 9 pruebas aprobadas, incluida subida WebDAV y persistencia
+  del localizador.
+- APK release `arm64-v8a` generada el 2026-09-25; incluye Nextcloud y el arreglo
+  de pantalla completa. Falta probar búsqueda, marcadores, progreso,
+  personalización, TTS, pantalla completa y sincronización en el teléfono.
 
 ## Pendiente, por prioridad
 
-### 1. Accesibilidad y pantallas grandes (en curso)
+### 1. Confirmar restauración de lectura al alternar pantalla completa
+
+El lector ahora mantiene el mismo árbol de widgets al ocultar/mostrar la barra
+de sistema, actualiza el localizador inicial al avanzar y espera a que se guarde
+la posición antes de cambiar de modo. Falta reproducir en el teléfono el caso
+reportado: entrar y salir de pantalla completa sin volver al inicio del libro.
+
+### 2. Validar sincronización Nextcloud en dispositivos (pendiente)
+
+La primera fase está implementada: sincronización manual de EPUB, localizador
+y marcadores. Falta configurar una cuenta real desde la app y validar la misma
+biblioteca en dos dispositivos. La política actual usa la marca de última
+modificación por libro; no hay bloqueo/ETag del manifiesto para escrituras
+simultáneas, así que ese caso aún puede perder una actualización. Los borrados
+no se propagan y los reintentos son manuales.
+
+**Prueba de aceptación:** configurar URL HTTPS, usuario y contraseña de
+aplicación; subir un libro desde un dispositivo y descargarlo en otro; probar
+progreso, marcadores, credenciales incorrectas, desconexión durante subida y
+reintento. No copiar credenciales a Git ni a registros.
+
+### 3. Accesibilidad y pantallas grandes (en curso)
 
 La biblioteca ahora usa una lista desplazable en teléfonos y una cuadrícula en
 pantallas anchas, con un límite de ancho para aprovechar mejor tabletas. Los
@@ -40,7 +65,7 @@ contraste, áreas táctiles y el resto de vistas en orientación horizontal.
 **Comprobación:** completar las acciones principales con lector de pantalla y
 probar el lector en teléfono, tableta y apaisado.
 
-### 2. Lectura en voz alta (implementación inicial)
+### 4. Lectura en voz alta (implementación inicial)
 
 El menú del lector abre controles Readium para iniciar/pausar, avanzar o
 retroceder una frase y ajustar la velocidad. La disponibilidad de voz y el
@@ -49,7 +74,7 @@ seguimiento dependen del sistema y del EPUB.
 **Pendiente de comprobar en el teléfono:** voces disponibles, seguimiento del
 texto, app en segundo plano y pantalla bloqueada; documentar limitaciones.
 
-### 3. Organización de la biblioteca (en curso)
+### 5. Organización de la biblioteca (en curso)
 
 La biblioteca permite buscar por título o autor y ordenar por incorporación,
 título o autor. Falta añadir portadas y agrupación. Estas operaciones solo
@@ -58,24 +83,12 @@ reorganizan la vista y no modifican los archivos locales.
 **Comprobación:** importar varios EPUB, ordenar y filtrar; cerrar y volver a
 abrir la app para confirmar que la biblioteca permanece intacta.
 
-### 4. Sincronización entre dispositivos (implementación inicial)
+### 6. Ampliar sincronización entre dispositivos
 
-La primera fase ya incluye sincronización manual por Nextcloud WebDAV de los
-archivos EPUB (deduplicados por SHA-256), localizadores y marcadores. El
-manifiesto remoto lleva versión de esquema y marcas de modificación; las
-descargas se verifican antes de importar. La autenticación exige HTTPS y usa
-una contraseña de aplicación guardada en el almacén seguro del dispositivo.
-Es una función independiente de la exportación de anotaciones a FreeWise.
-
-**Pendiente:** validar con un Nextcloud real, resolver casos de sincronización
-simultánea/reintentos y añadir ajustes y anotaciones en una fase posterior. La
-biblioteca local sigue disponible sin conexión; el borrado remoto no se propaga
-para evitar eliminar libros por accidente.
-
-**Comprobación:** abrir la misma cuenta en dos dispositivos, confirmar subida y
-descarga de EPUB, continuar desde otra posición y recuperar marcadores; probar
-cambios offline, reintentos, deduplicación, transferencia interrumpida y
-credenciales inválidas. Verificar que el borrado local no borra la copia remota.
+Después de validar la fase inicial, mejorar resolución de conflictos y reintentos;
+añadir sincronización de anotaciones y preferencias. Mantener independiente la
+exportación de anotaciones a FreeWise y conservar por ahora la política segura
+de no propagar borrados.
 
 ## Notas técnicas para retomar
 
@@ -88,5 +101,5 @@ credenciales inválidas. Verificar que el borrado local no borra la copia remota
 - Antes de entregar una función: ejecutar `flutter analyze` y `flutter test`,
   generar la APK ARM64 solo cuando se solicite y probar el flujo correspondiente
   en el teléfono.
-- El estado Git puede contener cambios aún sin commit; comprobar `git status`
-  antes de continuar o limpiar nada.
+- Estado Git al guardar esta nota: limpio. Comprobar `git status` antes de
+  continuar o limpiar nada.

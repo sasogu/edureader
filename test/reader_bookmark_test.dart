@@ -7,6 +7,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('persists the latest reader locator for restoration', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = ReadiumStorage();
+    const locator = Locator(
+      href: 'text/chapter-4.xhtml',
+      type: 'application/xhtml+xml',
+      title: 'Capítulo cuatro',
+      locations: Locations(
+        progression: 0.65,
+        totalProgression: 0.42,
+        position: 8,
+      ),
+    );
+
+    await storage.saveLocator('book-a', locator);
+    final restored = await storage.loadLocator('book-a');
+
+    expect(restored?.href, locator.href);
+    expect(restored?.locations?.totalProgression, 0.42);
+    expect(
+      await storage.loadStateModifiedAt('book-a'),
+      isNot(DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)),
+    );
+  });
+
   test('persists bookmarks independently for each book', () async {
     SharedPreferences.setMockInitialValues({});
     final storage = ReadiumStorage();
