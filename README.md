@@ -72,7 +72,8 @@ los EPUB, los deduplica por SHA-256 y sincroniza el localizador de lectura y los
 marcadores, usando la última modificación cuando hay cambios en ambos
 dispositivos. Además, con la conexión configurada, cada libro se sincroniza
 solo al abrirlo (se trae la última posición, con un máximo de 5 segundos de
-espera) y al cerrarlo (se publica la posición y, si falta, se sube el EPUB).
+espera) y al cerrarlo (se publica la posición y, si falta, se sube el EPUB). También se publica la
+posición cuando la app pasa a segundo plano con un libro abierto.
 Esta sincronización automática es silenciosa: si no hay red, se sigue leyendo
 con el estado local. La sincronización de anotaciones y ajustes queda para una
 fase posterior.

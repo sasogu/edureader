@@ -95,7 +95,11 @@ class _LibraryPageState extends State<LibraryPage> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ReaderPage(book: book, settings: widget.settings),
+        builder: (_) => ReaderPage(
+          book: book,
+          settings: widget.settings,
+          onAppBackground: () => _autoSyncBook(book),
+        ),
       ),
     );
     if (!mounted) return;

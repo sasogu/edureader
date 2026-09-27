@@ -43,6 +43,8 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 - Sincronización automática por libro al abrirlo y al cerrarlo (1.0.2+9):
   al entrar solo trae la posición, sin subir el EPUB; al salir publica el
   estado y sube el libro si falta. Los errores se ignoran en silencio.
+- Sincronización también al pasar a segundo plano con un libro abierto
+  (1.0.2+10): guarda la posición y la publica en Nextcloud.
 
 ## Pendiente, por prioridad
 

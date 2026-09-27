@@ -21,16 +21,25 @@ enum _ReaderMenuAction {
 }
 
 class ReaderPage extends StatefulWidget {
-  const ReaderPage({required this.book, required this.settings, super.key});
+  const ReaderPage({
+    required this.book,
+    required this.settings,
+    this.onAppBackground,
+    super.key,
+  });
 
   final EpubBook book;
   final AppSettings settings;
+
+  /// Se llama cuando la app pasa a segundo plano con el libro abierto, después
+  /// de guardar la posición actual.
+  final Future<void> Function()? onAppBackground;
 
   @override
   State<ReaderPage> createState() => _ReaderPageState();
 }
 
-class _ReaderPageState extends State<ReaderPage> {
+class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   final FlutterReadium _readium = FlutterReadium();
   final ReadiumStorage _storage = ReadiumStorage();
   final FreeWiseExporter _exporter = FreeWiseExporter();
@@ -60,6 +69,7 @@ class _ReaderPageState extends State<ReaderPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.settings.addListener(_applyReaderPreferences);
     _readium.setDefaultPreferences(widget.settings.epubPreferences);
     _openPublication();
@@ -67,11 +77,30 @@ class _ReaderPageState extends State<ReaderPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.settings.removeListener(_applyReaderPreferences);
     _locatorSubscription?.cancel();
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     _readium.closePublication();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // `hidden` llega antes que `paused` en iOS y Android: deja más margen
+    // para enviar la posición antes de que el sistema suspenda la app.
+    if (state == AppLifecycleState.hidden) {
+      unawaited(_saveAndNotifyBackground());
+    }
+  }
+
+  Future<void> _saveAndNotifyBackground() async {
+    try {
+      await _persistCurrentLocator();
+    } catch (_) {
+      // Se sincroniza lo último que se llegó a guardar.
+    }
+    await widget.onAppBackground?.call();
   }
 
   Future<void> _toggleFullscreen() async {
