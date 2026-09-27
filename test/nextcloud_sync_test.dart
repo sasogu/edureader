@@ -55,6 +55,7 @@ void main() {
     () async {
       final secrets = _MemorySecretStore();
       final methods = <String>[];
+      final mkcolPaths = <String>[];
       final client = MockClient((request) async {
         methods.add(request.method);
         expect(request.url.scheme, 'https');
@@ -70,6 +71,7 @@ void main() {
           );
           return http.Response('', 207);
         }
+        mkcolPaths.add(request.url.path);
         return http.Response('', 201);
       });
       final sync = NextcloudSync(client: client, secretStore: secrets);
@@ -82,6 +84,10 @@ void main() {
       await sync.testConnection();
 
       expect(methods, ['MKCOL', 'MKCOL', 'PROPFIND']);
+      expect(mkcolPaths, [
+        '/remote.php/dav/files/reader/EduReader',
+        '/remote.php/dav/files/reader/EduReader/books',
+      ]);
     },
   );
 

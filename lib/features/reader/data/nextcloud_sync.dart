@@ -59,10 +59,10 @@ class NextcloudSync {
     NextcloudSecretStore? secretStore,
     LibraryStorage? libraryStorage,
     ReadiumStorage? readiumStorage,
-  })  : _secretStore = secretStore ?? FlutterNextcloudSecretStore(),
-        _library = libraryStorage ?? LibraryStorage(),
-        _readium = readiumStorage ?? ReadiumStorage(),
-        _client = client ?? http.Client();
+  }) : _secretStore = secretStore ?? FlutterNextcloudSecretStore(),
+       _library = libraryStorage ?? LibraryStorage(),
+       _readium = readiumStorage ?? ReadiumStorage(),
+       _client = client ?? http.Client();
 
   static const _serverKey = 'nextcloud_server_url';
   static const _usernameKey = 'nextcloud_username';
@@ -120,8 +120,8 @@ class NextcloudSync {
 
   Future<void> testConnection() async {
     final connection = await _requireConnection();
-    await _ensureCollection(connection, 'EduReader');
-    await _ensureCollection(connection, 'EduReader/books');
+    await _ensureCollection(connection, '');
+    await _ensureCollection(connection, 'books');
     final request = http.Request('PROPFIND', _davUri(connection, ''))
       ..headers.addAll(_headers(connection))
       ..headers['Depth'] = '0';
@@ -136,8 +136,8 @@ class NextcloudSync {
 
   Future<NextcloudSyncResult> syncLibrary(List<EpubBook> localBooks) async {
     final connection = await _requireConnection();
-    await _ensureCollection(connection, 'EduReader');
-    await _ensureCollection(connection, 'EduReader/books');
+    await _ensureCollection(connection, '');
+    await _ensureCollection(connection, 'books');
 
     final manifest = await _downloadManifest(connection);
     final localByHash = <String, EpubBook>{};
@@ -281,7 +281,10 @@ class NextcloudSync {
         ..headers.addAll(_headers(connection))
         ..followRedirects = false,
     );
-    await _requireStatus(response, const {201, 405, 409}, 'crear una carpeta');
+    await _requireStatus(response, const {
+      201,
+      405,
+    }, 'crear la carpeta EduReader${path.isEmpty ? '' : '/$path'}');
   }
 
   Future<void> _uploadBook(
@@ -373,9 +376,9 @@ class NextcloudSync {
         .map(Uri.encodeComponent)
         .join('/');
     return Uri.parse(
-        '$server/remote.php/dav/files/$username/EduReader${normalizedPath.isEmpty ? '' : '/$normalizedPath'}');
+      '$server/remote.php/dav/files/$username/EduReader${normalizedPath.isEmpty ? '' : '/$normalizedPath'}',
+    );
   }
-
 
   Map<String, String> _headers(NextcloudConnection connection) => {
     'Authorization':
