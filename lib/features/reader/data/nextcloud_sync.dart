@@ -74,6 +74,17 @@ class NextcloudSync {
   final LibraryStorage _library;
   final ReadiumStorage _readium;
 
+  // Las operaciones leen, modifican y reescriben el índice remoto: si dos se
+  // solapan (al cerrar un libro, al pasar a segundo plano o a mano), la última
+  // en escribir borra lo que publicó la otra. Por eso se ejecutan en fila.
+  Future<void> _queue = Future.value();
+
+  Future<T> _serialized<T>(Future<T> Function() action) {
+    final result = _queue.then((_) => action());
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
   Future<NextcloudConnection?> loadConnection() async {
     final preferences = await SharedPreferences.getInstance();
     final serverUrl = preferences.getString(_serverKey);
@@ -118,7 +129,9 @@ class NextcloudSync {
     await preferences.setString(_usernameKey, normalizedUsername);
   }
 
-  Future<void> testConnection() async {
+  Future<void> testConnection() => _serialized(_testConnection);
+
+  Future<void> _testConnection() async {
     final connection = await _requireConnection();
     await _ensureCollection(connection, '');
     await _ensureCollection(connection, 'books');
@@ -134,7 +147,10 @@ class NextcloudSync {
     await response.stream.drain<void>();
   }
 
-  Future<NextcloudSyncResult> syncLibrary(List<EpubBook> localBooks) async {
+  Future<NextcloudSyncResult> syncLibrary(List<EpubBook> localBooks) =>
+      _serialized(() => _syncLibrary(localBooks));
+
+  Future<NextcloudSyncResult> _syncLibrary(List<EpubBook> localBooks) async {
     final connection = await _requireConnection();
     await _ensureCollection(connection, '');
     await _ensureCollection(connection, 'books');
@@ -192,12 +208,33 @@ class NextcloudSync {
 
   /// Sincroniza solo la posición y los marcadores de un libro. Con
   /// [uploadIfMissing] también sube el EPUB si todavía no está en Nextcloud.
-  Future<void> syncBook(EpubBook book, {bool uploadIfMissing = true}) async {
+  /// Si [isCancelled] devuelve true cuando llega el índice remoto, no se toca
+  /// nada: sirve para descartar una sincronización que llegó tarde, cuando el
+  /// lector ya está mostrando la posición local.
+  Future<void> syncBook(
+    EpubBook book, {
+    bool uploadIfMissing = true,
+    bool Function()? isCancelled,
+  }) => _serialized(
+    () => _syncBook(
+      book,
+      uploadIfMissing: uploadIfMissing,
+      isCancelled: isCancelled,
+    ),
+  );
+
+  Future<void> _syncBook(
+    EpubBook book, {
+    required bool uploadIfMissing,
+    bool Function()? isCancelled,
+  }) async {
+    if (isCancelled?.call() ?? false) return;
     final connection = await _requireConnection();
     final path = _bookPath(book);
     if (!await File(path).exists()) return;
     final hash = await _sha256(path);
     final manifest = await _downloadManifest(connection);
+    if (isCancelled?.call() ?? false) return;
     final entry = manifest[hash];
     if (entry == null) {
       if (!uploadIfMissing) return;

@@ -250,6 +250,44 @@ void main() {
       );
     });
 
+    test('ignores the remote state once the sync was cancelled', () async {
+      final methods = <String>[];
+      final sync = await connect(
+        MockClient((request) async {
+          methods.add(request.method);
+          return http.Response(
+            jsonEncode({
+              'schemaVersion': 1,
+              'books': [
+                {
+                  'sha256': hash,
+                  'title': 'Libro',
+                  'modifiedAt': DateTime.utc(2026, 9, 27).toIso8601String(),
+                  'locator': null,
+                  'bookmarks': [],
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      var cancelled = false;
+
+      // El lector ya se abrió mientras llegaba el índice.
+      final pending = sync.syncBook(book, isCancelled: () => cancelled);
+      cancelled = true;
+      await pending;
+
+      expect(methods, isEmpty);
+      await sync.syncBook(book, isCancelled: () => methods.isNotEmpty);
+      expect(methods, ['GET']);
+      expect(
+        await ReadiumStorage().loadStateModifiedAt(book.id),
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      );
+    });
+
     test('uploads a missing EPUB only when asked to', () async {
       final requests = <String>[];
       final sync = await connect(
@@ -272,6 +310,119 @@ void main() {
         'PUT $hash.epub',
         'PUT library-v1.json',
       ]);
+    });
+  });
+
+  group('concurrent operations', () {
+    late Directory directory;
+
+    setUp(() async {
+      directory = await Directory.systemTemp.createTemp('edureader-queue-');
+    });
+
+    tearDown(() => directory.delete(recursive: true));
+
+    Future<EpubBook> localBook(String name) async {
+      final epub = File('${directory.path}/$name.epub');
+      await epub.writeAsBytes(utf8.encode('epub-$name'));
+      return EpubBook(
+        id: epub.path,
+        metadata: EpubMetadata(title: name, creator: 'Autora'),
+        chapters: [],
+        spine: [],
+        manifest: {},
+        tableOfContents: [],
+        navigation: [],
+        filePath: epub.path,
+        createdAt: DateTime.utc(2026),
+      );
+    }
+
+    String hashOf(EpubBook book) =>
+        sha256.convert(File(book.filePath!).readAsBytesSync()).toString();
+
+    /// Servidor WebDAV mínimo que guarda el índice y responde con retraso,
+    /// para que dos operaciones sin orden se pisen como en un móvil real.
+    (MockClient, List<String> Function()) fakeServer({bool failFirst = false}) {
+      String? manifest;
+      var fail = failFirst;
+      final client = MockClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        if (fail) {
+          fail = false;
+          return http.Response('', 500);
+        }
+        final name = request.url.pathSegments.last;
+        if (request.method == 'GET' && name == 'library-v1.json') {
+          return manifest == null
+              ? http.Response('', 404)
+              : http.Response(manifest!, 200);
+        }
+        if (request.method == 'PUT' && name == 'library-v1.json') {
+          manifest = request.body;
+          return http.Response('', 201);
+        }
+        if (request.method == 'MKCOL') return http.Response('', 405);
+        return http.Response('', 201);
+      });
+      List<String> hashes() => manifest == null
+          ? []
+          : [
+              for (final entry
+                  in (jsonDecode(manifest!) as Map<String, dynamic>)['books']
+                      as List)
+                (entry as Map<String, dynamic>)['sha256'] as String,
+            ];
+      return (client, hashes);
+    }
+
+    Future<NextcloudSync> connect(MockClient client) async {
+      final sync = NextcloudSync(
+        client: client,
+        secretStore: _MemorySecretStore(),
+      );
+      await sync.saveConnection(
+        serverUrl: 'https://cloud.example.org',
+        username: 'reader',
+        appPassword: 'secret',
+      );
+      return sync;
+    }
+
+    test('two books closed at once both reach the remote index', () async {
+      final (client, remoteHashes) = fakeServer();
+      final sync = await connect(client);
+      final first = await localBook('primero');
+      final second = await localBook('segundo');
+
+      await Future.wait([sync.syncBook(first), sync.syncBook(second)]);
+
+      expect(remoteHashes(), unorderedEquals([hashOf(first), hashOf(second)]));
+    });
+
+    test('a manual sync does not erase a book published meanwhile', () async {
+      final (client, remoteHashes) = fakeServer();
+      final sync = await connect(client);
+      final opened = await localBook('abierto');
+      final other = await localBook('otro');
+
+      await Future.wait([
+        sync.syncLibrary([other]),
+        sync.syncBook(opened),
+      ]);
+
+      expect(remoteHashes(), unorderedEquals([hashOf(opened), hashOf(other)]));
+    });
+
+    test('a failed operation does not block the next ones', () async {
+      final (client, remoteHashes) = fakeServer(failFirst: true);
+      final sync = await connect(client);
+      final book = await localBook('libro');
+
+      await expectLater(sync.syncBook(book), throwsA(isA<StateError>()));
+      await sync.syncBook(book);
+
+      expect(remoteHashes(), [hashOf(book)]);
     });
   });
 }

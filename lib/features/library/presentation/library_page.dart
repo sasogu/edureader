@@ -33,6 +33,7 @@ class _LibraryPageState extends State<LibraryPage> {
   bool _isLoading = false;
   bool _isSettingsOpen = false;
   bool _isNextcloudSyncing = false;
+  int _autoSyncs = 0;
 
   @override
   void initState() {
@@ -90,11 +91,16 @@ class _LibraryPageState extends State<LibraryPage> {
   Future<void> _openBook(EpubBook book) async {
     // Al entrar se trae la posición remota sin subir el EPUB, para no
     // retrasar la apertura; al salir se publica el estado y, si falta, el libro.
+    // Si la respuesta llega cuando el lector ya está abierto, se descarta:
+    // aplicarla o publicarla entonces pisaría la posición que se está leyendo.
+    var readerOpened = false;
     await _autoSyncBook(
       book,
       uploadIfMissing: false,
       timeout: const Duration(seconds: 5),
+      isCancelled: () => readerOpened,
     );
+    readerOpened = true;
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -115,20 +121,26 @@ class _LibraryPageState extends State<LibraryPage> {
     EpubBook book, {
     bool uploadIfMissing = true,
     Duration timeout = const Duration(minutes: 2),
+    bool Function()? isCancelled,
   }) async {
-    if (_isNextcloudSyncing) return;
+    // No se descarta aunque haya otra sincronización en marcha: NextcloudSync
+    // las pone en fila, y saltarse la del cierre perdería la última posición.
     final connection = await _nextcloud.loadConnection();
     if (connection == null || connection.appPassword.isEmpty) return;
     if (!mounted) return;
-    setState(() => _isNextcloudSyncing = true);
+    setState(() => _autoSyncs++);
     try {
       await _nextcloud
-          .syncBook(book, uploadIfMissing: uploadIfMissing)
+          .syncBook(
+            book,
+            uploadIfMissing: uploadIfMissing,
+            isCancelled: isCancelled,
+          )
           .timeout(timeout);
     } catch (_) {
       // La sincronización manual muestra los errores; la automática no molesta.
     } finally {
-      if (mounted) setState(() => _isNextcloudSyncing = false);
+      if (mounted) setState(() => _autoSyncs--);
     }
   }
 
@@ -542,7 +554,7 @@ class _LibraryPageState extends State<LibraryPage> {
           IconButton(
             tooltip: 'Sincronización Nextcloud',
             onPressed: _isNextcloudSyncing ? null : _openNextcloudMenu,
-            icon: _isNextcloudSyncing
+            icon: _isNextcloudSyncing || _autoSyncs > 0
                 ? const SizedBox.square(
                     dimension: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
