@@ -22,6 +22,12 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>EduReader no usa la cámara; solo se solicita si el sistema la ofrece al elegir archivos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>EduReader solo accede a tus fotos si eliges importar un archivo desde la fototeca.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
