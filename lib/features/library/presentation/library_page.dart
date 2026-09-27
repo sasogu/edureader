@@ -3,6 +3,7 @@ import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/settings/app_settings.dart';
+import '../../../core/widgets/completed_dialog.dart';
 import '../../reader/data/freewise_sync.dart';
 import '../../reader/data/nextcloud_sync.dart';
 import '../data/library_storage.dart';
@@ -25,6 +26,7 @@ class _LibraryPageState extends State<LibraryPage> {
   final NextcloudSync _nextcloud = NextcloudSync();
   final List<EpubBook> _books = [];
   bool _isLoading = false;
+  bool _isSettingsOpen = false;
   bool _isNextcloudSyncing = false;
 
   @override
@@ -110,7 +112,7 @@ class _LibraryPageState extends State<LibraryPage> {
     final passwordController = TextEditingController();
     String? validationError;
     final configuration =
-        await showDialog<
+        await showCompletedDialog<
           ({String serverUrl, String username, String appPassword})
         >(
           context: context,
@@ -274,6 +276,16 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Future<void> _openSettings() async {
+    if (_isSettingsOpen) return;
+    _isSettingsOpen = true;
+    try {
+      await _showSettings();
+    } finally {
+      _isSettingsOpen = false;
+    }
+  }
+
+  Future<void> _showSettings() async {
     String? currentUrl;
     try {
       currentUrl = await _sync.getBaseUrl();
@@ -293,7 +305,7 @@ class _LibraryPageState extends State<LibraryPage> {
     var lineHeight = widget.settings.lineHeight;
     var pageMargins = widget.settings.pageMargins;
     final configuration =
-        await showDialog<
+        await showCompletedDialog<
           ({
             String? url,
             bool darkMode,
@@ -518,11 +530,6 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isLoading || _isNextcloudSyncing ? null : _pickEpub,
-        icon: const Icon(Icons.add),
-        label: const Text('Añadir EPUB'),
       ),
     );
   }

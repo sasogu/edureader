@@ -21,6 +21,7 @@ class ReadiumReaderWidget extends StatefulWidget {
     this.initialLocator,
     this.shouldShowControls,
     this.onExternalLinkActivated,
+    this.onReaderReady,
     this.onTextSelected,
     this.onSelectionAction,
     this.onDecorationInteraction,
@@ -34,6 +35,9 @@ class ReadiumReaderWidget extends StatefulWidget {
     this.preloadNextPositionCount = 6,
     super.key,
   });
+
+  /// Called once the visual reader is ready to receive decorations.
+  final VoidCallback? onReaderReady;
 
   /// The publication to display, obtained from [FlutterReadium.openPublication].
   final Publication publication;
@@ -390,6 +394,7 @@ class _ReadiumReaderWidgetState extends State<ReadiumReaderWidget> implements Re
             isReady = true;
           });
           _isReadyCompleter.complete(locator);
+          widget.onReaderReady?.call();
         }
       },
       onTextSelected: widget.onTextSelected,

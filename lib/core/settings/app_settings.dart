@@ -3,6 +3,29 @@ import 'package:flutter_readium/flutter_readium.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettings extends ChangeNotifier {
+  static const _highlightColorKey = 'reader_highlight_color';
+  Color _highlightColor = const Color(0xFFFFF176);
+  Color get highlightColor => _highlightColor;
+
+  Future<void> setHighlightColor(Color color) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setInt(_highlightColorKey, color.toARGB32());
+    _highlightColor = color;
+    notifyListeners();
+  }
+
+  // ---- Underline color support ----
+  static const _underlineColorKey = 'reader_underline_color';
+  Color _underlineColor = const Color(0xFF90CAF9); // Azul por defecto
+  Color get underlineColor => _underlineColor;
+
+  Future<void> setUnderlineColor(Color color) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setInt(_underlineColorKey, color.toARGB32());
+    _underlineColor = color;
+    notifyListeners();
+  }
+
   static const _darkModeKey = 'appearance_dark_mode';
   static const _sepiaModeKey = 'reader_sepia_mode';
   static const _fontScaleKey = 'reader_font_scale';
@@ -43,6 +66,12 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> load() async {
     final preferences = await SharedPreferences.getInstance();
+    _highlightColor = Color(
+      preferences.getInt(_highlightColorKey) ?? 0xFFFFF176,
+    );
+    _underlineColor = Color(
+      preferences.getInt(_underlineColorKey) ?? 0xFF90CAF9,
+    );
     _darkMode = preferences.getBool(_darkModeKey) ?? false;
     _sepiaMode = preferences.getBool(_sepiaModeKey) ?? false;
     if (_darkMode) _sepiaMode = false;

@@ -14,12 +14,14 @@ class ReadiumWebView extends StatefulWidget {
     required this.publication,
     super.key,
     this.currentLocator,
+    this.onReaderReady,
     this.onTextSelected,
     this.onSelectionAction,
     this.onDecorationInteraction,
     this.onImageTapped,
   });
 
+  final VoidCallback? onReaderReady;
   final Publication publication;
   final Locator? currentLocator;
   final void Function(TextSelectionEvent)? onTextSelected;
@@ -34,6 +36,7 @@ class ReadiumWebView extends StatefulWidget {
 }
 
 class ReadiumWebViewState extends State<ReadiumWebView> {
+  bool _readerReady = false;
   @override
   void initState() {
     super.initState();
@@ -49,6 +52,10 @@ class ReadiumWebViewState extends State<ReadiumWebView> {
     final locatorJson = jsonDecode(locatorJsonString);
     final locator = Locator.fromJson(locatorJson)!;
     FlutterReadiumWebPlugin.addTextLocatorUpdate(locator);
+    if (!_readerReady && mounted) {
+      _readerReady = true;
+      widget.onReaderReady?.call();
+    }
   }
 
   @js_interop.JSExport()

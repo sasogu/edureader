@@ -6,6 +6,9 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 ## Estado actual
 
 - Biblioteca local e importación de EPUB.
+- La biblioteca muestra una sola acción contextual para añadir libros: elegir
+  EPUB cuando está vacía y añadir otro EPUB cuando ya contiene libros. Se
+  eliminó el botón flotante duplicado.
 - Lectura EPUB con Readium, guardado del progreso y subrayados/notas.
 - Exportación y sincronización de anotaciones con FreeWise.
 - Índice del EPUB para saltar a capítulos y secciones.
@@ -26,20 +29,19 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 - Verificación de código tras la sincronización: `flutter analyze` limpio y
   `flutter test` con 9 pruebas aprobadas, incluida subida WebDAV y persistencia
   del localizador.
-- APK release `arm64-v8a` generada el 2026-09-25; incluye Nextcloud y el arreglo
-  de pantalla completa. Falta probar búsqueda, marcadores, progreso,
-  personalización, TTS, pantalla completa y sincronización en el teléfono.
+- `flutter analyze` limpio y `flutter test` con 9 pruebas aprobadas tras
+  eliminar el botón duplicado de importación; se añadió una prueba de regresión.
+- APK release `arm64-v8a` generada el 2026-09-25; incluye Nextcloud, el arreglo
+  de pantalla completa y la acción única para añadir libros. Artefacto:
+  `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~26 MB).
+  Falta probar búsqueda, marcadores, progreso,
+  personalización, TTS y sincronización en el teléfono.
+- Confirmado en el teléfono (2026-09-27): al entrar y salir de pantalla
+  completa se conserva la posición de lectura.
 
 ## Pendiente, por prioridad
 
-### 1. Confirmar restauración de lectura al alternar pantalla completa
-
-El lector ahora mantiene el mismo árbol de widgets al ocultar/mostrar la barra
-de sistema, actualiza el localizador inicial al avanzar y espera a que se guarde
-la posición antes de cambiar de modo. Falta reproducir en el teléfono el caso
-reportado: entrar y salir de pantalla completa sin volver al inicio del libro.
-
-### 2. Validar sincronización Nextcloud en dispositivos (pendiente)
+### 1. Validar sincronización Nextcloud en dispositivos (pendiente)
 
 La primera fase está implementada: sincronización manual de EPUB, localizador
 y marcadores. Falta configurar una cuenta real desde la app y validar la misma
@@ -53,7 +55,7 @@ aplicación; subir un libro desde un dispositivo y descargarlo en otro; probar
 progreso, marcadores, credenciales incorrectas, desconexión durante subida y
 reintento. No copiar credenciales a Git ni a registros.
 
-### 3. Accesibilidad y pantallas grandes (en curso)
+### 2. Accesibilidad y pantallas grandes (en curso)
 
 La biblioteca ahora usa una lista desplazable en teléfonos y una cuadrícula en
 pantallas anchas, con un límite de ancho para aprovechar mejor tabletas. Los
@@ -65,7 +67,7 @@ contraste, áreas táctiles y el resto de vistas en orientación horizontal.
 **Comprobación:** completar las acciones principales con lector de pantalla y
 probar el lector en teléfono, tableta y apaisado.
 
-### 4. Lectura en voz alta (implementación inicial)
+### 3. Lectura en voz alta (implementación inicial)
 
 El menú del lector abre controles Readium para iniciar/pausar, avanzar o
 retroceder una frase y ajustar la velocidad. La disponibilidad de voz y el
@@ -74,7 +76,7 @@ seguimiento dependen del sistema y del EPUB.
 **Pendiente de comprobar en el teléfono:** voces disponibles, seguimiento del
 texto, app en segundo plano y pantalla bloqueada; documentar limitaciones.
 
-### 5. Organización de la biblioteca (en curso)
+### 4. Organización de la biblioteca (en curso)
 
 La biblioteca permite buscar por título o autor y ordenar por incorporación,
 título o autor. Falta añadir portadas y agrupación. Estas operaciones solo
@@ -83,7 +85,7 @@ reorganizan la vista y no modifican los archivos locales.
 **Comprobación:** importar varios EPUB, ordenar y filtrar; cerrar y volver a
 abrir la app para confirmar que la biblioteca permanece intacta.
 
-### 6. Ampliar sincronización entre dispositivos
+### 5. Ampliar sincronización entre dispositivos
 
 Después de validar la fase inicial, mejorar resolución de conflictos y reintentos;
 añadir sincronización de anotaciones y preferencias. Mantener independiente la
@@ -101,5 +103,5 @@ de no propagar borrados.
 - Antes de entregar una función: ejecutar `flutter analyze` y `flutter test`,
   generar la APK ARM64 solo cuando se solicite y probar el flujo correspondiente
   en el teléfono.
-- Estado Git al guardar esta nota: limpio. Comprobar `git status` antes de
-  continuar o limpiar nada.
+- Estado al guardar esta nota (2026-09-27): versión 1.0.2+4 preparada para
+  App Store; Linux es la referencia y el Mac se sincroniza desde aquí.

@@ -29,9 +29,7 @@ class ReadiumStorage {
     try {
       final items = jsonDecode(value) as List<dynamic>;
       return items
-          .map(
-            (item) => ReaderDecoration.fromJson(item as Map<String, dynamic>),
-          )
+          .map((item) => _decodeDecoration(item as Map<String, dynamic>))
           .toList();
     } catch (_) {
       return [];
@@ -45,8 +43,30 @@ class ReadiumStorage {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(
       _decorationsKey(bookId),
-      jsonEncode(decorations.map((decoration) => decoration.toJson()).toList()),
+      jsonEncode(
+        decorations.map((decoration) {
+          final value = decoration.toJson();
+          value['style'] = {
+            ...decoration.style.toJson(),
+            if (decoration.style.tint != null)
+              'tint': decoration.style.tint!.toARGB32(),
+          };
+          return value;
+        }).toList(),
+      ),
     );
+  }
+
+  ReaderDecoration _decodeDecoration(Map<String, dynamic> value) {
+    final style = Map<String, dynamic>.from(value['style'] as Map);
+    final tint = style['tint'];
+    // Older saves use Readium's wire format (#AARRGGBB / #RRGGBB).
+    // Its Dart deserializer expects an ARGB integer instead.
+    if (tint is String) {
+      final hex = tint.replaceFirst('#', '');
+      style['tint'] = int.parse(hex.length == 6 ? 'ff$hex' : hex, radix: 16);
+    }
+    return ReaderDecoration.fromJson({...value, 'style': style});
   }
 
   Future<List<ReaderBookmark>> loadBookmarks(String bookId) async {

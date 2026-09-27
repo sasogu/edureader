@@ -8,6 +8,7 @@ class ReadiumReaderWidget extends StatelessWidget {
     this.initialLocator,
     this.shouldShowControls,
     this.onExternalLinkActivated,
+    this.onReaderReady,
     this.onTextSelected,
     this.onSelectionAction,
     this.onDecorationInteraction,
@@ -21,6 +22,7 @@ class ReadiumReaderWidget extends StatelessWidget {
     super.key,
   });
 
+  final VoidCallback? onReaderReady;
   final Publication publication;
   final Widget loadingWidget;
   final Locator? initialLocator;

@@ -5,6 +5,7 @@ import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -59,10 +60,12 @@ class NextcloudSync {
     NextcloudSecretStore? secretStore,
     LibraryStorage? libraryStorage,
     ReadiumStorage? readiumStorage,
-  }) : _client = client ?? http.Client(),
-       _secretStore = secretStore ?? FlutterNextcloudSecretStore(),
-       _library = libraryStorage ?? LibraryStorage(),
-       _readium = readiumStorage ?? ReadiumStorage();
+  })  : _secretStore = secretStore ?? FlutterNextcloudSecretStore(),
+        _library = libraryStorage ?? LibraryStorage(),
+        _readium = readiumStorage ?? ReadiumStorage(),
+        _client = client ?? IOClient(
+          HttpClient()..badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true);
 
   static const _serverKey = 'nextcloud_server_url';
   static const _usernameKey = 'nextcloud_username';
@@ -281,7 +284,7 @@ class NextcloudSync {
         ..headers.addAll(_headers(connection))
         ..followRedirects = false,
     );
-    await _requireStatus(response, const {201, 405}, 'crear una carpeta');
+    await _requireStatus(response, const {201, 405, 409}, 'crear una carpeta');
   }
 
   Future<void> _uploadBook(
@@ -366,15 +369,16 @@ class NextcloudSync {
   Uri _davUri(NextcloudConnection connection, String path) {
     final server = _normalizeServerUrl(connection.serverUrl);
     final username = Uri.encodeComponent(connection.username);
-    final suffix = path
+    // Normaliza el path eliminando barras vacías y codificando cada segmento.
+    final normalizedPath = path
         .split('/')
-        .where((part) => part.isNotEmpty)
+        .where((segment) => segment.isNotEmpty)
         .map(Uri.encodeComponent)
         .join('/');
     return Uri.parse(
-      '$server/remote.php/dav/files/$username/EduReader${suffix.isEmpty ? '' : '/$suffix'}',
-    );
+        '$server/remote.php/dav/files/$username/EduReader${normalizedPath.isEmpty ? '' : '/$normalizedPath'}');
   }
+
 
   Map<String, String> _headers(NextcloudConnection connection) => {
     'Authorization':

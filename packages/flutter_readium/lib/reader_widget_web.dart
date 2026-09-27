@@ -16,6 +16,7 @@ class ReadiumReaderWidget extends StatefulWidget {
     this.goForwardSemanticLabel = 'Go Forward',
     this.toggleShowControlsSemanticLabel = 'Toggle show controls',
     this.verticalScroll = false,
+    this.onReaderReady,
     this.onTextSelected,
     this.onSelectionAction,
     this.onDecorationInteraction,
@@ -24,6 +25,9 @@ class ReadiumReaderWidget extends StatefulWidget {
     this.allowedDefaultActions,
     super.key,
   });
+
+  /// Called once the visual reader is ready to receive decorations.
+  final VoidCallback? onReaderReady;
 
   final Publication publication;
   final Widget loadingWidget;
@@ -65,6 +69,7 @@ class _ReadiumReaderWidgetState extends State<ReadiumReaderWidget> implements Re
     child: ReadiumWebView(
       publication: widget.publication,
       currentLocator: widget.initialLocator,
+      onReaderReady: widget.onReaderReady,
       onTextSelected: widget.onTextSelected,
       onSelectionAction: widget.onSelectionAction,
       onDecorationInteraction: widget.onDecorationInteraction,
