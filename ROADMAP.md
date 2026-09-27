@@ -45,6 +45,9 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
   estado y sube el libro si falta. Los errores se ignoran en silencio.
 - Sincronización también al pasar a segundo plano con un libro abierto
   (1.0.2+10): guarda la posición y la publica en Nextcloud.
+- Portadas en la biblioteca (1.0.2+11): miniatura en la lista del móvil y
+  estantería de portadas en pantallas anchas. Extractor propio por OPF
+  (EPUB 3 `cover-image`, EPUB 2 `meta cover`) con caché en disco.
 
 ## Pendiente, por prioridad
 

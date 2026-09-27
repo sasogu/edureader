@@ -2,12 +2,15 @@ import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/settings/app_settings.dart';
 import '../../../core/widgets/completed_dialog.dart';
 import '../../reader/data/freewise_sync.dart';
 import '../../reader/data/nextcloud_sync.dart';
+import '../data/cover_extractor.dart';
 import '../data/library_storage.dart';
 import '../../reader/presentation/reader_page.dart';
 
@@ -637,6 +640,7 @@ class _BookList extends StatefulWidget {
 }
 
 class _BookListState extends State<_BookList> {
+  final CoverCache _covers = CoverCache();
   String _query = '';
   _LibrarySort _sort = _LibrarySort.recentlyAdded;
 
@@ -732,18 +736,19 @@ class _BookListState extends State<_BookList> {
               : LayoutBuilder(
                   builder: (context, constraints) {
                     if (constraints.maxWidth >= 640) {
+                      // Pantallas anchas: estantería de portadas.
                       return GridView.builder(
                         padding: const EdgeInsets.only(bottom: 8),
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 480,
-                              mainAxisExtent: 100,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 4,
+                              maxCrossAxisExtent: 180,
+                              childAspectRatio: 0.5,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
                             ),
                         itemCount: visibleBooks.length,
                         itemBuilder: (context, index) =>
-                            _bookCard(visibleBooks[index]),
+                            _bookTile(visibleBooks[index]),
                       );
                     }
                     return ListView.builder(
@@ -764,21 +769,110 @@ class _BookListState extends State<_BookList> {
     );
   }
 
+  Widget _cover(EpubBook book) =>
+      _BookCover(cover: _covers.coverFor(book.id), title: book.metadata.title);
+
   Widget _bookCard(EpubBook book) => Card(
     clipBehavior: Clip.antiAlias,
-    child: ListTile(
-      leading: const Icon(Icons.book_outlined),
-      title: Text(
-        book.metadata.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        book.metadata.creator ?? 'Autor desconocido',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+    child: InkWell(
       onTap: () => widget.onOpenBook(book),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            SizedBox(width: 56, height: 84, child: _cover(book)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    book.metadata.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    book.metadata.creator ?? 'Autor desconocido',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
   );
+
+  Widget _bookTile(EpubBook book) => InkWell(
+    onTap: () => widget.onOpenBook(book),
+    borderRadius: BorderRadius.circular(8),
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _cover(book)),
+          const SizedBox(height: 8),
+          Text(
+            book.metadata.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          Text(
+            book.metadata.creator ?? 'Autor desconocido',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Portada del libro, o un marcador con icono si el EPUB no trae imagen.
+class _BookCover extends StatelessWidget {
+  const _BookCover({required this.cover, required this.title});
+
+  final Future<File?> cover;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final placeholder = ColoredBox(
+      color: colors.surfaceContainerHighest,
+      child: Center(
+        child: Icon(Icons.menu_book_outlined, color: colors.onSurfaceVariant),
+      ),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: ExcludeSemantics(
+        child: FutureBuilder<File?>(
+          future: cover,
+          builder: (context, snapshot) {
+            final file = snapshot.data;
+            if (file == null) return placeholder;
+            return Image.file(
+              file,
+              fit: BoxFit.cover,
+              cacheWidth: 360,
+              errorBuilder: (_, _, _) => placeholder,
+            );
+          },
+        ),
+      ),
+    );
+  }
 }

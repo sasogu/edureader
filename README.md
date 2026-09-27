@@ -80,6 +80,10 @@ fase posterior.
 
 La biblioteca permite filtrar por título o autor y ordenar por incorporación,
 título o autor; estas operaciones solo cambian la vista y no alteran los EPUB.
+Cada libro muestra su portada: una miniatura en la lista del teléfono y una
+estantería de portadas en pantallas anchas. La portada se extrae una vez del
+paquete OPF del EPUB y se guarda en caché; si el libro no trae imagen, se
+muestra un icono.
 
 La configuración nativa de Readium requiere Android con `minSdk 24`,
 `FlutterFragmentActivity` y desugaring de la biblioteca estándar. En iOS se
