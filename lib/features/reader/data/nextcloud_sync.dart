@@ -5,7 +5,6 @@ import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,9 +62,7 @@ class NextcloudSync {
   })  : _secretStore = secretStore ?? FlutterNextcloudSecretStore(),
         _library = libraryStorage ?? LibraryStorage(),
         _readium = readiumStorage ?? ReadiumStorage(),
-        _client = client ?? IOClient(
-          HttpClient()..badCertificateCallback =
-              (X509Certificate cert, String host, int port) => true);
+        _client = client ?? http.Client();
 
   static const _serverKey = 'nextcloud_server_url';
   static const _usernameKey = 'nextcloud_username';

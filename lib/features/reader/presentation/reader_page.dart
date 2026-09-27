@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_readium/flutter_readium.dart';
 
 import '../../../core/settings/app_settings.dart';
+import '../../../core/widgets/completed_dialog.dart';
 import '../data/freewise_exporter.dart';
 import '../data/freewise_sync.dart';
 import '../data/reader_bookmark.dart';
 import '../data/readium_storage.dart';
+import 'highlight_color_dialog.dart';
 
 enum _ReaderMenuAction {
   readAloud,
@@ -45,8 +47,10 @@ class _ReaderPageState extends State<ReaderPage> {
   String? _error;
   bool _isLoading = true;
   bool _isSavingHighlight = false;
+  bool _isChoosingHighlight = false;
   bool _isSearching = false;
   bool _isFullscreen = false;
+  bool _isReaderMenuOpen = false;
   bool _ttsEnabled = false;
   bool _isTtsPlaying = false;
   bool _isTtsBusy = false;
@@ -305,7 +309,7 @@ class _ReaderPageState extends State<ReaderPage> {
 
   Future<void> _searchInBook() async {
     final controller = TextEditingController();
-    final query = await showDialog<String>(
+    final query = await showCompletedDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Buscar en el libro'),
@@ -642,6 +646,64 @@ class _ReaderPageState extends State<ReaderPage> {
     }
   }
 
+  Future<void> _openReaderMenu() async {
+    if (_isReaderMenuOpen) return;
+    setState(() => _isReaderMenuOpen = true);
+    try {
+      final action = await showModalBottomSheet<_ReaderMenuAction>(
+        context: context,
+        useRootNavigator: true,
+        useSafeArea: true,
+        isDismissible: false,
+        enableDrag: false,
+        constraints: const BoxConstraints(maxWidth: 560),
+        builder: (sheetContext) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Más opciones'),
+              trailing: IconButton(
+                tooltip: 'Cerrar',
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                icon: const Icon(Icons.close),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.volume_up_outlined),
+              title: const Text('Lectura en voz alta'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(_ReaderMenuAction.readAloud),
+            ),
+            ListTile(
+              leading: const Icon(Icons.linear_scale),
+              title: const Text('Ir a una posición'),
+              onTap: () => Navigator.of(
+                sheetContext,
+              ).pop(_ReaderMenuAction.goToProgress),
+            ),
+            ListTile(
+              leading: const Icon(Icons.ios_share_outlined),
+              title: const Text('Exportar anotaciones'),
+              onTap: () => Navigator.of(
+                sheetContext,
+              ).pop(_ReaderMenuAction.exportAnnotations),
+            ),
+            ListTile(
+              leading: const Icon(Icons.cloud_upload_outlined),
+              title: const Text('Sincronizar con FreeWise'),
+              onTap: () => Navigator.of(
+                sheetContext,
+              ).pop(_ReaderMenuAction.syncAnnotations),
+            ),
+          ],
+        ),
+      );
+      if (action != null && mounted) _handleMenuAction(action);
+    } finally {
+      if (mounted) setState(() => _isReaderMenuOpen = false);
+    }
+  }
+
   Iterable<(Link, int)> _flattenContents(
     List<Link> links, [
     int depth = 0,
@@ -662,7 +724,7 @@ class _ReaderPageState extends State<ReaderPage> {
     }
 
     final controller = TextEditingController();
-    final label = await showDialog<String>(
+    final label = await showCompletedDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Añadir marcador'),
@@ -880,9 +942,6 @@ class _ReaderPageState extends State<ReaderPage> {
           setState(() => _readingProgress = progression.clamp(0.0, 1.0));
         }
       });
-      if (decorations.isNotEmpty) {
-        await _readium.applyDecorations('edureader', decorations);
-      }
       _syncIfConfigured();
     } catch (error) {
       if (!mounted) return;
@@ -890,6 +949,20 @@ class _ReaderPageState extends State<ReaderPage> {
         _error = 'No se ha podido abrir el EPUB con Readium: $error';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _restoreDecorations() async {
+    if (!mounted || _decorations.isEmpty) return;
+    try {
+      await _readium.applyDecorations('edureader', _decorations);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudieron mostrar los subrayados guardados.'),
+        ),
+      );
     }
   }
 
@@ -910,7 +983,38 @@ class _ReaderPageState extends State<ReaderPage> {
     }
   }
 
-  Future<void> _saveHighlight(Locator locator, String? selectedText) async {
+  Future<void> _chooseHighlight(Locator locator, String? selectedText) async {
+    if (!mounted || _isChoosingHighlight || _isSavingHighlight) return;
+    if ((selectedText ?? locator.text?.highlight ?? '').trim().isEmpty) return;
+    setState(() => _isChoosingHighlight = true);
+    try {
+      final color = await showCompletedDialog<Color>(
+        context: context,
+        builder: (_) =>
+            HighlightColorDialog(initialColor: widget.settings.highlightColor),
+      );
+      if (!mounted || color == null) return;
+      await widget.settings.setHighlightColor(color);
+      if (!mounted) return;
+      await _saveHighlight(locator, selectedText, color);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo guardar el color del subrayado.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isChoosingHighlight = false);
+    }
+  }
+
+  Future<void> _saveHighlight(
+    Locator locator,
+    String? selectedText,
+    Color color,
+  ) async {
     final text = selectedText ?? locator.text?.highlight ?? '';
     if (text.trim().isEmpty || _isSavingHighlight) return;
 
@@ -919,9 +1023,9 @@ class _ReaderPageState extends State<ReaderPage> {
     final decoration = ReaderDecoration(
       id: 'highlight_${DateTime.now().microsecondsSinceEpoch}',
       locator: locator,
-      style: const ReaderDecorationStyle(
+      style: ReaderDecorationStyle(
         style: DecorationStyle.highlight,
-        tint: Color(0x80FFF176),
+        tint: color,
       ),
     );
     final decorations = [..._decorations, decoration];
@@ -933,7 +1037,7 @@ class _ReaderPageState extends State<ReaderPage> {
           bookId: widget.book.id,
           chapterIndex: _chapterIndex(locator),
           text: text,
-          color: const Color(0xFFFDD835),
+          color: color,
         ),
       );
       if (!mounted) return;
@@ -957,12 +1061,12 @@ class _ReaderPageState extends State<ReaderPage> {
   Future<void> _saveCurrentSelection() async {
     final selection = _selectedTextEvent;
     if (selection != null) {
-      await _saveHighlight(selection.locator, selection.selectedText);
+      await _chooseHighlight(selection.locator, selection.selectedText);
     }
   }
 
   Future<void> _applyHighlight(SelectionActionEvent event) {
-    return _saveHighlight(event.locator, event.selectedText);
+    return _chooseHighlight(event.locator, event.selectedText);
   }
 
   Future<void> _applyNote(SelectionActionEvent event) async {
@@ -970,7 +1074,7 @@ class _ReaderPageState extends State<ReaderPage> {
     if (text.trim().isEmpty || !mounted) return;
 
     final controller = TextEditingController();
-    final note = await showDialog<String>(
+    final note = await showCompletedDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Añadir nota'),
@@ -1066,7 +1170,7 @@ class _ReaderPageState extends State<ReaderPage> {
       final controller = TextEditingController(
         text: 'http://freewise.example.com',
       );
-      final configuredUrl = await showDialog<String>(
+      final configuredUrl = await showCompletedDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Configurar FreeWise'),
@@ -1108,7 +1212,9 @@ class _ReaderPageState extends State<ReaderPage> {
           ),
         ),
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('FreeWise sync failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No se pudo sincronizar con FreeWise: $error')),
@@ -1166,57 +1272,21 @@ class _ReaderPageState extends State<ReaderPage> {
                         )
                       : const Icon(Icons.search),
                 ),
-                PopupMenuButton<_ReaderMenuAction>(
+                IconButton(
                   tooltip: 'Más opciones',
-                  onSelected: _handleMenuAction,
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: _ReaderMenuAction.readAloud,
-                      child: Row(
-                        children: [
-                          Icon(Icons.volume_up_outlined),
-                          SizedBox(width: 12),
-                          Text('Lectura en voz alta'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _ReaderMenuAction.goToProgress,
-                      child: Row(
-                        children: [
-                          Icon(Icons.linear_scale),
-                          SizedBox(width: 12),
-                          Text('Ir a una posición'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _ReaderMenuAction.exportAnnotations,
-                      child: Row(
-                        children: [
-                          Icon(Icons.ios_share_outlined),
-                          SizedBox(width: 12),
-                          Text('Exportar anotaciones'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _ReaderMenuAction.syncAnnotations,
-                      child: Row(
-                        children: [
-                          Icon(Icons.cloud_upload_outlined),
-                          SizedBox(width: 12),
-                          Text('Sincronizar con FreeWise'),
-                        ],
-                      ),
-                    ),
-                  ],
+                  onPressed: _openReaderMenu,
+                  icon: const Icon(Icons.more_vert),
                 ),
               ],
             ),
       body: Stack(
         children: [
-          Positioned.fill(child: _buildBody()),
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: _isReaderMenuOpen || _isChoosingHighlight,
+              child: _buildBody(),
+            ),
+          ),
           if (_isFullscreen)
             Positioned(
               top: 8,
@@ -1276,6 +1346,7 @@ class _ReaderPageState extends State<ReaderPage> {
         SelectionAction(id: 'highlight', title: 'Subrayar'),
         SelectionAction(id: 'note', title: 'Nota'),
       ],
+      onReaderReady: _restoreDecorations,
       onTextSelected: _rememberSelection,
       onSelectionAction: _handleSelectionAction,
     );

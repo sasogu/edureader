@@ -103,5 +103,5 @@ de no propagar borrados.
 - Antes de entregar una función: ejecutar `flutter analyze` y `flutter test`,
   generar la APK ARM64 solo cuando se solicite y probar el flujo correspondiente
   en el teléfono.
-- Estado al guardar esta nota (2026-09-27): versión 1.0.2+4 preparada para
+- Estado al guardar esta nota (2026-09-27): versión 1.0.2+5 preparada para
   App Store; Linux es la referencia y el Mac se sincroniza desde aquí.
