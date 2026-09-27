@@ -63,8 +63,7 @@ También existe sincronización directa: el botón de nube envía el CSV al
 endpoint de importación de FreeWise. La primera vez solicita la URL del
 servidor y la guarda localmente. Las siguientes sincronizaciones son
 incrementales y solo envían anotaciones posteriores a la última sincronización
-correcta. La configuración predeterminada apunta al servidor FreeWise configurado
-(`http://freewise.example.com`). Si falla la red, el intento queda pendiente.
+correcta. Si falla la red, el intento queda pendiente.
 
 La biblioteca ofrece sincronización manual con Nextcloud por WebDAV. Se
 configura el servidor HTTPS, el usuario y una contraseña de aplicación; esta

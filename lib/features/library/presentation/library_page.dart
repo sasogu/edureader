@@ -331,7 +331,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       autocorrect: false,
                       decoration: InputDecoration(
                         labelText: 'URL del servidor FreeWise',
-                        hintText: 'http://freewise.example.com',
+                        hintText: 'https://freewise.example.com',
                         helperText: 'Incluye http:// o https://',
                         errorText: validationError,
                       ),

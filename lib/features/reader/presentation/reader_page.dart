@@ -1167,9 +1167,7 @@ class _ReaderPageState extends State<ReaderPage> {
     var baseUrl = await _sync.getBaseUrl();
     if (!mounted) return;
     if (baseUrl == null || baseUrl.isEmpty) {
-      final controller = TextEditingController(
-        text: 'http://freewise.example.com',
-      );
+      final controller = TextEditingController();
       final configuredUrl = await showCompletedDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
