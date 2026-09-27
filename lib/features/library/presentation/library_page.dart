@@ -266,6 +266,35 @@ class _LibraryPageState extends State<LibraryPage> {
     }
   }
 
+  // En iPad el PopupMenuButton se cerraba solo; una hoja inferior modal
+  // se mantiene abierta hasta que se elige una opción.
+  Future<void> _openNextcloudMenu() async {
+    final action = await showModalBottomSheet<_NextcloudAction>(
+      context: context,
+      useRootNavigator: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.sync),
+              title: const Text('Sincronizar biblioteca'),
+              onTap: () => Navigator.pop(sheetContext, _NextcloudAction.sync),
+            ),
+            ListTile(
+              leading: const Icon(Icons.cloud_outlined),
+              title: const Text('Configurar Nextcloud'),
+              onTap: () =>
+                  Navigator.pop(sheetContext, _NextcloudAction.configure),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action != null && mounted) _handleNextcloudAction(action);
+  }
+
   void _handleNextcloudAction(_NextcloudAction action) {
     switch (action) {
       case _NextcloudAction.sync:
@@ -468,36 +497,9 @@ class _LibraryPageState extends State<LibraryPage> {
       appBar: AppBar(
         title: const Text('EduReader'),
         actions: [
-          PopupMenuButton<_NextcloudAction>(
+          IconButton(
             tooltip: 'Sincronización Nextcloud',
-            enabled: !_isNextcloudSyncing,
-            onSelected: _handleNextcloudAction,
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: _NextcloudAction.sync,
-                child: Row(
-                  children: [
-                    const Icon(Icons.sync),
-                    const SizedBox(width: 12),
-                    Text(
-                      _isNextcloudSyncing
-                          ? 'Sincronizando…'
-                          : 'Sincronizar biblioteca',
-                    ),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: _NextcloudAction.configure,
-                child: Row(
-                  children: [
-                    Icon(Icons.cloud_outlined),
-                    SizedBox(width: 12),
-                    Text('Configurar Nextcloud'),
-                  ],
-                ),
-              ),
-            ],
+            onPressed: _isNextcloudSyncing ? null : _openNextcloudMenu,
             icon: _isNextcloudSyncing
                 ? const SizedBox.square(
                     dimension: 20,

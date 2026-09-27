@@ -11,4 +11,19 @@ void main() {
     expect(find.text('Elegir un EPUB'), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsNothing);
   });
+
+  testWidgets(
+    'el menú de Nextcloud sigue abierto hasta elegir una opción',
+    (tester) async {
+      await tester.pumpWidget(const EduReaderApp());
+
+      await tester.tap(find.byTooltip('Sincronización Nextcloud'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(find.text('Sincronizar biblioteca'), findsOneWidget);
+      expect(find.text('Configurar Nextcloud'), findsOneWidget);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
 }
