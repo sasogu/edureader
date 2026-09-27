@@ -168,17 +168,9 @@ class NextcloudSync {
         downloaded++;
       }
 
-      final localModifiedAt = await _readium.loadStateModifiedAt(book.id);
-      if (localModifiedAt.isAfter(entry.modifiedAtDate)) {
+      if (await _reconcileState(book, entry)) {
         manifest[entry.sha256] = await _entryFromLocal(book, entry.sha256);
         manifestChanged = true;
-      } else {
-        await _readium.applyRemoteState(
-          bookId: book.id,
-          locator: entry.locator,
-          bookmarks: entry.bookmarks,
-          modifiedAt: entry.modifiedAtDate,
-        );
       }
     }
 
@@ -196,6 +188,41 @@ class NextcloudSync {
       uploadedBooks: uploaded,
       downloadedBooks: downloaded,
     );
+  }
+
+  /// Sincroniza solo la posición y los marcadores de un libro. Con
+  /// [uploadIfMissing] también sube el EPUB si todavía no está en Nextcloud.
+  Future<void> syncBook(EpubBook book, {bool uploadIfMissing = true}) async {
+    final connection = await _requireConnection();
+    final path = _bookPath(book);
+    if (!await File(path).exists()) return;
+    final hash = await _sha256(path);
+    final manifest = await _downloadManifest(connection);
+    final entry = manifest[hash];
+    if (entry == null) {
+      if (!uploadIfMissing) return;
+      await _ensureCollection(connection, '');
+      await _ensureCollection(connection, 'books');
+      await _uploadBook(connection, hash, path);
+    } else if (!await _reconcileState(book, entry)) {
+      return;
+    }
+    manifest[hash] = await _entryFromLocal(book, hash);
+    await _uploadManifest(connection, manifest);
+  }
+
+  /// Aplica el estado remoto si es más reciente. Devuelve true cuando el
+  /// estado local es el más nuevo y hay que publicarlo en el índice.
+  Future<bool> _reconcileState(EpubBook book, _NextcloudBookEntry entry) async {
+    final localModifiedAt = await _readium.loadStateModifiedAt(book.id);
+    if (localModifiedAt.isAfter(entry.modifiedAtDate)) return true;
+    await _readium.applyRemoteState(
+      bookId: book.id,
+      locator: entry.locator,
+      bookmarks: entry.bookmarks,
+      modifiedAt: entry.modifiedAtDate,
+    );
+    return false;
   }
 
   Future<_NextcloudBookEntry> _entryFromLocal(

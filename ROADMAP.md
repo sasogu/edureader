@@ -38,14 +38,20 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
   personalización, TTS y sincronización en el teléfono.
 - Confirmado en el teléfono (2026-09-27): al entrar y salir de pantalla
   completa se conserva la posición de lectura.
+- Sincronización Nextcloud validada con un servidor real en Android e iPad
+  (2026-09-27, tras corregir la ruta duplicada `EduReader/EduReader`).
+- Sincronización automática por libro al abrirlo y al cerrarlo (1.0.2+9):
+  al entrar solo trae la posición, sin subir el EPUB; al salir publica el
+  estado y sube el libro si falta. Los errores se ignoran en silencio.
 
 ## Pendiente, por prioridad
 
 ### 1. Validar sincronización Nextcloud en dispositivos (pendiente)
 
-La primera fase está implementada: sincronización manual de EPUB, localizador
-y marcadores. Falta configurar una cuenta real desde la app y validar la misma
-biblioteca en dos dispositivos. La política actual usa la marca de última
+La primera fase está implementada: sincronización manual y automática por
+libro de EPUB, localizador y marcadores, ya probada con una cuenta real. Falta
+comprobar el paso de la posición entre dos dispositivos con la sincronización
+automática. La política actual usa la marca de última
 modificación por libro; no hay bloqueo/ETag del manifiesto para escrituras
 simultáneas, así que ese caso aún puede perder una actualización. Los borrados
 no se propagan y los reintentos son manuales.

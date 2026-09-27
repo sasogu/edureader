@@ -177,4 +177,101 @@ void main() {
     expect(await storage.loadBookmarks('local-book'), isEmpty);
     expect(await storage.loadStateModifiedAt('local-book'), modifiedAt);
   });
+
+  group('syncBook', () {
+    late Directory directory;
+    late EpubBook book;
+    late String hash;
+
+    setUp(() async {
+      directory = await Directory.systemTemp.createTemp('edureader-book-');
+      final epub = File('${directory.path}/book.epub');
+      final bytes = utf8.encode('epub-single-book');
+      await epub.writeAsBytes(bytes);
+      hash = sha256.convert(bytes).toString();
+      book = EpubBook(
+        id: epub.path,
+        metadata: EpubMetadata(title: 'Libro', creator: 'Autora'),
+        chapters: [],
+        spine: [],
+        manifest: {},
+        tableOfContents: [],
+        navigation: [],
+        filePath: epub.path,
+        createdAt: DateTime.utc(2026),
+      );
+    });
+
+    tearDown(() => directory.delete(recursive: true));
+
+    Future<NextcloudSync> connect(MockClient client) async {
+      final sync = NextcloudSync(
+        client: client,
+        secretStore: _MemorySecretStore(),
+      );
+      await sync.saveConnection(
+        serverUrl: 'https://cloud.example.org',
+        username: 'reader',
+        appPassword: 'secret',
+      );
+      return sync;
+    }
+
+    test('applies a newer remote state without uploading anything', () async {
+      final remoteModifiedAt = DateTime.utc(2026, 9, 27, 12);
+      final methods = <String>[];
+      final sync = await connect(
+        MockClient((request) async {
+          methods.add(request.method);
+          return http.Response(
+            jsonEncode({
+              'schemaVersion': 1,
+              'books': [
+                {
+                  'sha256': hash,
+                  'title': 'Libro',
+                  'modifiedAt': remoteModifiedAt.toIso8601String(),
+                  'locator': null,
+                  'bookmarks': [],
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      await sync.syncBook(book);
+
+      expect(methods, ['GET']);
+      expect(
+        await ReadiumStorage().loadStateModifiedAt(book.id),
+        remoteModifiedAt,
+      );
+    });
+
+    test('uploads a missing EPUB only when asked to', () async {
+      final requests = <String>[];
+      final sync = await connect(
+        MockClient((request) async {
+          requests.add('${request.method} ${request.url.pathSegments.last}');
+          if (request.method == 'GET') return http.Response('', 404);
+          return http.Response('', 201);
+        }),
+      );
+
+      await sync.syncBook(book, uploadIfMissing: false);
+      expect(requests, ['GET library-v1.json']);
+
+      requests.clear();
+      await sync.syncBook(book);
+      expect(requests, [
+        'GET library-v1.json',
+        'MKCOL EduReader',
+        'MKCOL books',
+        'PUT $hash.epub',
+        'PUT library-v1.json',
+      ]);
+    });
+  });
 }

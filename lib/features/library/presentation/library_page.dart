@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:flutter/material.dart';
@@ -83,11 +85,44 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Future<void> _openBook(EpubBook book) async {
+    // Al entrar se trae la posición remota sin subir el EPUB, para no
+    // retrasar la apertura; al salir se publica el estado y, si falta, el libro.
+    await _autoSyncBook(
+      book,
+      uploadIfMissing: false,
+      timeout: const Duration(seconds: 5),
+    );
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ReaderPage(book: book, settings: widget.settings),
       ),
     );
+    if (!mounted) return;
+    unawaited(_autoSyncBook(book));
+  }
+
+  // Sincronización silenciosa: sin conexión configurada, sin red o con el
+  // servidor lento, se sigue leyendo con el estado local.
+  Future<void> _autoSyncBook(
+    EpubBook book, {
+    bool uploadIfMissing = true,
+    Duration timeout = const Duration(minutes: 2),
+  }) async {
+    if (_isNextcloudSyncing) return;
+    final connection = await _nextcloud.loadConnection();
+    if (connection == null || connection.appPassword.isEmpty) return;
+    if (!mounted) return;
+    setState(() => _isNextcloudSyncing = true);
+    try {
+      await _nextcloud
+          .syncBook(book, uploadIfMissing: uploadIfMissing)
+          .timeout(timeout);
+    } catch (_) {
+      // La sincronización manual muestra los errores; la automática no molesta.
+    } finally {
+      if (mounted) setState(() => _isNextcloudSyncing = false);
+    }
   }
 
   void _showError(String message) {

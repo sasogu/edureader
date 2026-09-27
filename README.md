@@ -70,8 +70,12 @@ configura el servidor HTTPS, el usuario y una contraseña de aplicación; esta
 última se guarda en el almacén seguro del sistema. EduReader sube y descarga
 los EPUB, los deduplica por SHA-256 y sincroniza el localizador de lectura y los
 marcadores, usando la última modificación cuando hay cambios en ambos
-dispositivos. La sincronización de anotaciones y ajustes queda para una fase
-posterior. La conexión todavía debe validarse con un servidor Nextcloud real.
+dispositivos. Además, con la conexión configurada, cada libro se sincroniza
+solo al abrirlo (se trae la última posición, con un máximo de 5 segundos de
+espera) y al cerrarlo (se publica la posición y, si falta, se sube el EPUB).
+Esta sincronización automática es silenciosa: si no hay red, se sigue leyendo
+con el estado local. La sincronización de anotaciones y ajustes queda para una
+fase posterior.
 
 La biblioteca permite filtrar por título o autor y ordenar por incorporación,
 título o autor; estas operaciones solo cambian la vista y no alteran los EPUB.
