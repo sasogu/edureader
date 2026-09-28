@@ -150,6 +150,31 @@ class NextcloudSync {
   Future<NextcloudSyncResult> syncLibrary(List<EpubBook> localBooks) =>
       _serialized(() => _syncLibrary(localBooks));
 
+  /// Removes the book from the shared index and deletes its EPUB on Nextcloud.
+  Future<void> deleteBook(EpubBook book) =>
+      _serialized(() => _deleteBook(book));
+
+  Future<void> _deleteBook(EpubBook book) async {
+    final connection = await _requireConnection();
+    final path = _bookPath(book);
+    final hash = await _sha256(path);
+    final manifest = await _downloadManifest(connection);
+    final response = await _client.send(
+      http.Request('DELETE', _davUri(connection, 'books/$hash.epub'))
+        ..headers.addAll(_headers(connection))
+        ..followRedirects = false,
+    );
+    await _requireStatus(response, const {
+      200,
+      202,
+      204,
+      404,
+    }, 'eliminar un EPUB');
+    if (manifest.remove(hash) != null) {
+      await _uploadManifest(connection, manifest);
+    }
+  }
+
   Future<NextcloudSyncResult> _syncLibrary(List<EpubBook> localBooks) async {
     final connection = await _requireConnection();
     await _ensureCollection(connection, '');

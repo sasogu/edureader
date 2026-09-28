@@ -154,6 +154,54 @@ class _LibraryPageState extends State<LibraryPage> {
     _openBook(book);
   }
 
+  Future<void> _deleteBook(EpubBook book) async {
+    if (_isNextcloudSyncing || _autoSyncs > 0) {
+      _showError('Espera a que termine la sincronización antes de eliminar.');
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar libro'),
+        content: Text(
+          '«${book.metadata.title}» se eliminará de este dispositivo y de Nextcloud. Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _nextcloud.deleteBook(book);
+      await _storage.removeBook(book);
+      if (!mounted) return;
+      setState(() {
+        _books.removeWhere((item) => item.id == book.id);
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Libro eliminado de este dispositivo y Nextcloud.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showError('No se pudo eliminar el libro: $error');
+    }
+  }
+
   Future<bool> _configureNextcloud() async {
     final existing = await _nextcloud.loadConnection();
     if (!mounted) return false;
@@ -582,6 +630,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   ? _BookList(
                       books: _books,
                       onOpenBook: _openStoredBook,
+                      onDeleteBook: _deleteBook,
                       onPickEpub: _pickEpub,
                     )
                   : _EmptyLibrary(onPickEpub: _pickEpub),
@@ -642,11 +691,13 @@ class _BookList extends StatefulWidget {
   const _BookList({
     required this.books,
     required this.onOpenBook,
+    required this.onDeleteBook,
     required this.onPickEpub,
   });
 
   final List<EpubBook> books;
   final ValueChanged<EpubBook> onOpenBook;
+  final ValueChanged<EpubBook> onDeleteBook;
   final VoidCallback onPickEpub;
 
   @override
@@ -818,6 +869,11 @@ class _BookListState extends State<_BookList> {
                 ],
               ),
             ),
+            IconButton(
+              tooltip: 'Eliminar libro',
+              onPressed: () => widget.onDeleteBook(book),
+              icon: const Icon(Icons.delete_outline),
+            ),
           ],
         ),
       ),
@@ -832,7 +888,30 @@ class _BookListState extends State<_BookList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: _cover(book)),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _cover(book),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Material(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.92),
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      tooltip: 'Eliminar libro',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => widget.onDeleteBook(book),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
             book.metadata.title,

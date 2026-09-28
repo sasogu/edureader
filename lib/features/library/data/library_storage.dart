@@ -5,6 +5,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../reader/data/readium_storage.dart';
+
 class LibraryStorage {
   static const _pathsKey = 'library_epub_paths';
 
@@ -59,5 +61,19 @@ class LibraryStorage {
     }
 
     return book.copyWith(id: destinationPath);
+  }
+
+  /// Removes an EPUB and the reading state associated with its local path.
+  Future<void> removeBook(EpubBook book) async {
+    final preferences = await SharedPreferences.getInstance();
+    final storedPaths = preferences.getStringList(_pathsKey) ?? <String>[];
+    storedPaths.remove(book.id);
+    await preferences.setStringList(_pathsKey, storedPaths);
+    final path = book.filePath ?? book.id;
+    final file = File(path);
+    if (await file.exists()) await file.delete();
+
+    await ReadiumStorage().removeBookState(book.id);
+    await preferences.remove('reading_progress_${book.id}');
   }
 }

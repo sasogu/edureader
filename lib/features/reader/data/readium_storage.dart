@@ -6,6 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'reader_bookmark.dart';
 
 class ReadiumStorage {
+  Future<void> removeBookState(String bookId) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_locatorKey(bookId));
+    await preferences.remove(_decorationsKey(bookId));
+    await preferences.remove(_bookmarksKey(bookId));
+    await preferences.remove(_stateModifiedKey(bookId));
+  }
+
   Future<Locator?> loadLocator(String bookId) async {
     final preferences = await SharedPreferences.getInstance();
     final value = preferences.getString(_locatorKey(bookId));
