@@ -57,7 +57,10 @@ libro, además de la navegación por capítulos del índice.
 El lector incluye controles iniciales de lectura en voz alta con Readium:
 reproducir o pausar, avanzar o retroceder una frase y ajustar la velocidad. La
 disponibilidad y el seguimiento del texto dependen de las voces del dispositivo
-y de la estructura del EPUB.
+y de la estructura del EPUB. Los controles aparecen en un minirreproductor
+flotante que no bloquea el libro y que se puede arrastrar arriba o abajo; fuera
+de la app, la lectura se controla desde la notificación multimedia de Android o
+la pantalla de bloqueo de iOS.
 
 También existe sincronización directa: el botón de nube envía el CSV al
 endpoint de importación de FreeWise. La primera vez solicita la URL del

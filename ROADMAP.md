@@ -80,8 +80,9 @@ probar el lector en teléfono, tableta y apaisado.
 
 ### 3. Lectura en voz alta (implementación inicial)
 
-El menú del lector abre controles Readium para iniciar/pausar, avanzar o
-retroceder una frase y ajustar la velocidad. La disponibilidad de voz y el
+El menú del lector inicia la lectura y muestra un minirreproductor flotante
+(iniciar/pausar, avanzar o retroceder una frase, velocidad y cerrar) que deja
+seguir usando el libro y se puede arrastrar arriba o abajo. La disponibilidad de voz y el
 seguimiento dependen del sistema y del EPUB.
 
 **Pendiente de comprobar en el teléfono:** voces disponibles, seguimiento del

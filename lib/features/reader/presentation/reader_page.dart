@@ -12,6 +12,7 @@ import '../data/freewise_sync.dart';
 import '../data/reader_bookmark.dart';
 import '../data/readium_storage.dart';
 import 'highlight_color_dialog.dart';
+import 'read_aloud_mini_player.dart';
 
 enum _ReaderMenuAction {
   readAloud,
@@ -63,6 +64,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   bool _ttsEnabled = false;
   bool _isTtsPlaying = false;
   bool _isTtsBusy = false;
+  bool _miniPlayerAtTop = false;
+  StreamSubscription<ReadiumTimebasedState>? _ttsSubscription;
   double _ttsSpeed = 1;
   double _readingProgress = 0;
 
@@ -72,6 +75,10 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.settings.addListener(_applyReaderPreferences);
     _readium.setDefaultPreferences(widget.settings.epubPreferences);
+    _ttsSubscription = _readium.onTimebasedPlayerStateChanged.listen(
+      _handleTimebasedState,
+      onError: (Object _) {},
+    );
     _openPublication();
   }
 
@@ -80,6 +87,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.settings.removeListener(_applyReaderPreferences);
     _locatorSubscription?.cancel();
+    _ttsSubscription?.cancel();
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     _readium.closePublication();
     super.dispose();
@@ -543,7 +551,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     if (_isTtsBusy) return;
     setState(() => _isTtsBusy = true);
     try {
-      if (_isTtsPlaying) {
+      final wasPlaying = _isTtsPlaying;
+      if (wasPlaying) {
         await _readium.pause();
       } else if (_ttsEnabled) {
         await _readium.resume();
@@ -554,7 +563,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _ttsEnabled = true;
-          _isTtsPlaying = !_isTtsPlaying;
+          _isTtsPlaying = !wasPlaying;
         });
       }
     } catch (error) {
@@ -600,66 +609,31 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _openReadAloudControls() async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Lectura en voz alta'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    tooltip: 'Frase anterior',
-                    onPressed: _ttsEnabled ? () => _skipTts(false) : null,
-                    icon: const Icon(Icons.skip_previous),
-                  ),
-                  IconButton.filled(
-                    tooltip: _isTtsPlaying ? 'Pausar' : 'Reproducir',
-                    onPressed: _isTtsBusy
-                        ? null
-                        : () async {
-                            await _toggleTtsPlayback();
-                            setDialogState(() {});
-                          },
-                    icon: Icon(_isTtsPlaying ? Icons.pause : Icons.play_arrow),
-                  ),
-                  IconButton(
-                    tooltip: 'Frase siguiente',
-                    onPressed: _ttsEnabled ? () => _skipTts(true) : null,
-                    icon: const Icon(Icons.skip_next),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text('Velocidad · ${_ttsSpeed.toStringAsFixed(1)}×'),
-              Slider(
-                value: _ttsSpeed,
-                min: 0.5,
-                max: 2,
-                divisions: 15,
-                label: '${_ttsSpeed.toStringAsFixed(1)}×',
-                semanticFormatterCallback: (value) =>
-                    'Velocidad de lectura: ${value.toStringAsFixed(1)} veces',
-                onChanged: (value) {
-                  setDialogState(() => _ttsSpeed = value);
-                },
-                onChangeEnd: _updateTtsSpeed,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _startReadAloud() async {
+    if (_ttsEnabled) return;
+    await _toggleTtsPlayback();
+  }
+
+  Future<void> _closeReadAloud() async {
+    setState(() {
+      _ttsEnabled = false;
+      _isTtsPlaying = false;
+    });
+    try {
+      await _readium.stop();
+    } catch (_) {
+      // Si ya estaba parado no hay nada que cerrar.
+    }
+  }
+
+  /// Mantiene el botón de reproducir al día cuando la lectura se pausa desde
+  /// la notificación, la pantalla de bloqueo o al terminar el libro.
+  void _handleTimebasedState(ReadiumTimebasedState state) {
+    if (!mounted || !_ttsEnabled) return;
+    final playing =
+        state.state == TimebasedState.playing ||
+        state.state == TimebasedState.loading;
+    if (playing != _isTtsPlaying) setState(() => _isTtsPlaying = playing);
   }
 
   void _handleMenuAction(_ReaderMenuAction action) {
@@ -667,7 +641,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       case _ReaderMenuAction.goToProgress:
         _openProgressNavigator();
       case _ReaderMenuAction.readAloud:
-        _openReadAloudControls();
+        _startReadAloud();
       case _ReaderMenuAction.exportAnnotations:
         _exportAnnotations();
       case _ReaderMenuAction.syncAnnotations:
@@ -1314,6 +1288,32 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
               child: _buildBody(),
             ),
           ),
+          if (_ttsEnabled)
+            Positioned(
+              left: 12,
+              right: 12,
+              top: _miniPlayerAtTop ? 8 : null,
+              // Deja sitio al botón «Subrayar» cuando hay texto seleccionado.
+              bottom: _miniPlayerAtTop
+                  ? null
+                  : (_selectedTextEvent == null ? 12 : 84),
+              child: SafeArea(
+                top: _miniPlayerAtTop,
+                bottom: !_miniPlayerAtTop,
+                child: Center(
+                  child: ReadAloudMiniPlayer(
+                    isPlaying: _isTtsPlaying,
+                    isBusy: _isTtsBusy,
+                    speed: _ttsSpeed,
+                    onTogglePlayback: _toggleTtsPlayback,
+                    onSkip: _skipTts,
+                    onSpeedChanged: _updateTtsSpeed,
+                    onClose: _closeReadAloud,
+                    onMove: (up) => setState(() => _miniPlayerAtTop = up),
+                  ),
+                ),
+              ),
+            ),
           if (_isFullscreen)
             Positioned(
               top: 8,
