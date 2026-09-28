@@ -9,6 +9,7 @@ import '../../reader/data/readium_storage.dart';
 
 class LibraryStorage {
   static const _pathsKey = 'library_epub_paths';
+  static const _tagsPrefix = 'library_book_tags_';
 
   Future<List<EpubBook>> loadBooks() async {
     final preferences = await SharedPreferences.getInstance();
@@ -75,5 +76,30 @@ class LibraryStorage {
 
     await ReadiumStorage().removeBookState(book.id);
     await preferences.remove('reading_progress_${book.id}');
+    await preferences.remove(_tagsKey(book.id));
   }
+
+  Future<List<String>> loadBookTags(String bookId) async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getStringList(_tagsKey(bookId)) ?? const [];
+  }
+
+  Future<void> saveBookTags(String bookId, List<String> tags) async {
+    final preferences = await SharedPreferences.getInstance();
+    final uniqueTags = <String>[];
+    final seen = <String>{};
+    for (final value in tags) {
+      final tag = value.trim();
+      if (tag.isEmpty || !seen.add(tag.toLowerCase())) continue;
+      uniqueTags.add(tag);
+    }
+    uniqueTags.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    if (uniqueTags.isEmpty) {
+      await preferences.remove(_tagsKey(bookId));
+    } else {
+      await preferences.setStringList(_tagsKey(bookId), uniqueTags);
+    }
+  }
+
+  String _tagsKey(String bookId) => '$_tagsPrefix$bookId';
 }

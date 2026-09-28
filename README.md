@@ -81,8 +81,11 @@ Esta sincronización automática es silenciosa: si no hay red, se sigue leyendo
 con el estado local. La sincronización de anotaciones y ajustes queda para una
 fase posterior.
 
-La biblioteca permite filtrar por título o autor y ordenar por incorporación,
-título o autor; estas operaciones solo cambian la vista y no alteran los EPUB.
+La biblioteca permite filtrar por título, autor y una o varias etiquetas, y
+ordenar por incorporación, título o autor; estas operaciones solo cambian la
+vista y no alteran los EPUB. Las etiquetas se guardan por libro en el
+dispositivo y se pueden combinar para mostrar solo los libros que tengan todas
+las etiquetas seleccionadas.
 Cada libro muestra su portada: una miniatura en la lista del teléfono y una
 estantería de portadas en pantallas anchas. La portada se extrae una vez del
 paquete OPF del EPUB y se guarda en caché; si el libro no trae imagen, se

@@ -30,6 +30,7 @@ class _LibraryPageState extends State<LibraryPage> {
   final FreeWiseSync _sync = FreeWiseSync();
   final NextcloudSync _nextcloud = NextcloudSync();
   final List<EpubBook> _books = [];
+  final Map<String, List<String>> _bookTags = {};
   bool _isLoading = false;
   bool _isSettingsOpen = false;
   bool _isNextcloudSyncing = false;
@@ -43,11 +44,18 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Future<void> _loadLibrary() async {
     final books = await _storage.loadBooks();
+    final tags = <String, List<String>>{};
+    for (final book in books) {
+      tags[book.id] = await _storage.loadBookTags(book.id);
+    }
     if (!mounted) return;
     setState(() {
       _books
         ..clear()
         ..addAll(books);
+      _bookTags
+        ..clear()
+        ..addAll(tags);
       _isLoading = false;
     });
   }
@@ -77,6 +85,7 @@ class _LibraryPageState extends State<LibraryPage> {
       setState(() {
         _books.removeWhere((item) => item.id == book.id);
         _books.add(book);
+        _bookTags[book.id] = [];
         _isLoading = false;
       });
 
@@ -188,6 +197,7 @@ class _LibraryPageState extends State<LibraryPage> {
       if (!mounted) return;
       setState(() {
         _books.removeWhere((item) => item.id == book.id);
+        _bookTags.remove(book.id);
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -199,6 +209,16 @@ class _LibraryPageState extends State<LibraryPage> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       _showError('No se pudo eliminar el libro: $error');
+    }
+  }
+
+  Future<void> _saveBookTags(EpubBook book, List<String> tags) async {
+    try {
+      await _storage.saveBookTags(book.id, tags);
+      if (!mounted) return;
+      setState(() => _bookTags[book.id] = List.of(tags));
+    } catch (error) {
+      if (mounted) _showError('No se pudieron guardar las etiquetas: $error');
     }
   }
 
@@ -347,11 +367,18 @@ class _LibraryPageState extends State<LibraryPage> {
       final books = await _storage.loadBooks();
       final result = await _nextcloud.syncLibrary(books);
       final refreshedBooks = await _storage.loadBooks();
+      final refreshedTags = <String, List<String>>{};
+      for (final book in refreshedBooks) {
+        refreshedTags[book.id] = await _storage.loadBookTags(book.id);
+      }
       if (!mounted) return;
       setState(() {
         _books
           ..clear()
           ..addAll(refreshedBooks);
+        _bookTags
+          ..clear()
+          ..addAll(refreshedTags);
         _isLoading = false;
       });
       final message = result.uploadedBooks == 0 && result.downloadedBooks == 0
@@ -629,8 +656,10 @@ class _LibraryPageState extends State<LibraryPage> {
                   : hasBooks
                   ? _BookList(
                       books: _books,
+                      bookTags: _bookTags,
                       onOpenBook: _openStoredBook,
                       onDeleteBook: _deleteBook,
+                      onSaveBookTags: _saveBookTags,
                       onPickEpub: _pickEpub,
                     )
                   : _EmptyLibrary(onPickEpub: _pickEpub),
@@ -690,14 +719,18 @@ enum _LibrarySort { recentlyAdded, title, author }
 class _BookList extends StatefulWidget {
   const _BookList({
     required this.books,
+    required this.bookTags,
     required this.onOpenBook,
     required this.onDeleteBook,
+    required this.onSaveBookTags,
     required this.onPickEpub,
   });
 
   final List<EpubBook> books;
+  final Map<String, List<String>> bookTags;
   final ValueChanged<EpubBook> onOpenBook;
   final ValueChanged<EpubBook> onDeleteBook;
+  final void Function(EpubBook, List<String>) onSaveBookTags;
   final VoidCallback onPickEpub;
 
   @override
@@ -708,13 +741,122 @@ class _BookListState extends State<_BookList> {
   final CoverCache _covers = CoverCache();
   String _query = '';
   _LibrarySort _sort = _LibrarySort.recentlyAdded;
+  final Set<String> _selectedTags = {};
+
+  @override
+  void didUpdateWidget(covariant _BookList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final currentTags = widget.bookTags.values.expand((tags) => tags).toSet();
+    _selectedTags.removeWhere((tag) => !currentTags.contains(tag));
+  }
+
+  List<String> get _allTags =>
+      widget.bookTags.values.expand((tags) => tags).toSet().toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+  Future<void> _editTags(EpubBook book) async {
+    final tags = List<String>.of(widget.bookTags[book.id] ?? const []);
+    final controller = TextEditingController();
+    final updatedTags = await showDialog<List<String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          void addTag() {
+            final value = controller.text.trim();
+            if (value.isEmpty ||
+                tags.any((tag) => tag.toLowerCase() == value.toLowerCase())) {
+              return;
+            }
+            setDialogState(() {
+              tags.add(value);
+              tags.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+              controller.clear();
+            });
+          }
+
+          return AlertDialog(
+            title: const Text('Etiquetas del libro'),
+            content: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    book.metadata.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          autofocus: true,
+                          textInputAction: TextInputAction.done,
+                          decoration: const InputDecoration(
+                            labelText: 'Nueva etiqueta',
+                            border: OutlineInputBorder(),
+                          ),
+                          onSubmitted: (_) => addTag(),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Añadir etiqueta',
+                        onPressed: addTag,
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (tags.isEmpty)
+                    const Text('Este libro todavía no tiene etiquetas.')
+                  else
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final tag in tags)
+                          InputChip(
+                            label: Text(tag),
+                            onDeleted: () =>
+                                setDialogState(() => tags.remove(tag)),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, tags),
+                child: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    controller.dispose();
+    if (!mounted || updatedTags == null) return;
+    widget.onSaveBookTags(book, updatedTags);
+  }
 
   List<EpubBook> get _visibleBooks {
     final query = _query.trim().toLowerCase();
     final filtered = widget.books.where((book) {
-      return query.isEmpty ||
+      final matchesSearch =
+          query.isEmpty ||
           book.metadata.title.toLowerCase().contains(query) ||
           (book.metadata.creator ?? '').toLowerCase().contains(query);
+      final tags = widget.bookTags[book.id] ?? const <String>[];
+      final matchesTags = _selectedTags.every(tags.contains);
+      return matchesSearch && matchesTags;
     }).toList();
     switch (_sort) {
       case _LibrarySort.recentlyAdded:
@@ -767,6 +909,55 @@ class _BookListState extends State<_BookList> {
           textInputAction: TextInputAction.search,
           onChanged: (value) => setState(() => _query = value),
         ),
+        if (_allTags.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                'Filtrar por etiquetas',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              if (_selectedTags.isNotEmpty) ...[
+                const Spacer(),
+                TextButton(
+                  onPressed: () => setState(_selectedTags.clear),
+                  child: const Text('Limpiar'),
+                ),
+              ],
+            ],
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 112),
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final tag in _allTags)
+                    FilterChip(
+                      label: Text(tag),
+                      selected: _selectedTags.contains(tag),
+                      onSelected: (selected) => setState(() {
+                        if (selected) {
+                          _selectedTags.add(tag);
+                        } else {
+                          _selectedTags.remove(tag);
+                        }
+                      }),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (_allTags.length > 4)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Al elegir varias, se muestran los libros que tienen todas.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
         const SizedBox(height: 8),
         DropdownButtonFormField<_LibrarySort>(
           initialValue: _sort,
@@ -866,8 +1057,29 @@ class _BookListState extends State<_BookList> {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
+                  if ((widget.bookTags[book.id] ?? []).isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 0,
+                      children: [
+                        for (final tag in widget.bookTags[book.id]!)
+                          Chip(
+                            label: Text(tag),
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: 'Editar etiquetas',
+              onPressed: () => _editTags(book),
+              icon: const Icon(Icons.sell_outlined),
             ),
             IconButton(
               tooltip: 'Eliminar libro',
@@ -896,17 +1108,34 @@ class _BookListState extends State<_BookList> {
                 Positioned(
                   top: 4,
                   right: 4,
-                  child: Material(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.92),
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      tooltip: 'Eliminar libro',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => widget.onDeleteBook(book),
-                      icon: const Icon(Icons.delete_outline),
-                    ),
+                  child: Column(
+                    children: [
+                      Material(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0.92),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          tooltip: 'Editar etiquetas',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _editTags(book),
+                          icon: const Icon(Icons.sell_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Material(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0.92),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          tooltip: 'Eliminar libro',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => widget.onDeleteBook(book),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -927,6 +1156,13 @@ class _BookListState extends State<_BookList> {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
+          if ((widget.bookTags[book.id] ?? []).isNotEmpty)
+            Text(
+              widget.bookTags[book.id]!.join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
         ],
       ),
     ),
