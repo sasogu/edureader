@@ -326,6 +326,8 @@ class _LibraryPageState extends State<LibraryPage> {
     final action = await showModalBottomSheet<_NextcloudAction>(
       context: context,
       useRootNavigator: true,
+      isDismissible: false,
+      enableDrag: false,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Column(
@@ -346,15 +348,15 @@ class _LibraryPageState extends State<LibraryPage> {
         ),
       ),
     );
-    if (action != null && mounted) _handleNextcloudAction(action);
+    if (action != null && mounted) await _handleNextcloudAction(action);
   }
 
-  void _handleNextcloudAction(_NextcloudAction action) {
+  Future<void> _handleNextcloudAction(_NextcloudAction action) async {
     switch (action) {
       case _NextcloudAction.sync:
-        _syncWithNextcloud();
+        await _syncWithNextcloud();
       case _NextcloudAction.configure:
-        _configureNextcloud();
+        await _configureNextcloud();
     }
   }
 
