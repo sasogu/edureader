@@ -45,6 +45,6 @@ for device in "${devices[@]}"; do
           ;;
         *"All tests passed"*|*"Some tests failed"*|*Error*|*EXCEPTION*) echo "$line" ;;
       esac
-    done
+    done || echo "   la prueba ha fallado en $device"
   xcrun simctl status_bar "$udid" clear
 done

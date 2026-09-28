@@ -100,12 +100,11 @@ void main() {
     await tap(find.text('Buscar'));
     await wait(4000);
     await shot('06_busqueda');
-    await tester.tapAt(const Offset(20, 120));
-    await wait(1200);
+    await tap(find.byTooltip('Cerrar resultados'));
     await shot('07_modo_oscuro');
 
     await theme(dark: false, sepia: false);
-    await tester.pageBack();
+    await tap(find.byType(BackButton));
     await wait(2000);
     await tap(find.byTooltip('Sincronización Nextcloud'));
     await wait(1500);
