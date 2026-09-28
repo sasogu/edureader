@@ -24,6 +24,11 @@ void main() {
 
   setUp(() => calls = []);
 
+  test('1.0× reads at the slower base rate', () {
+    expect(ttsEngineRate(1), 0.8);
+    expect(ttsEngineRate(2), closeTo(1.6, 1e-9));
+  });
+
   testWidgets('play button follows the playback state', (tester) async {
     await tester.pumpWidget(player());
     expect(find.byTooltip('Reproducir'), findsOneWidget);

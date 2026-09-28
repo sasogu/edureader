@@ -557,7 +557,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       } else if (_ttsEnabled) {
         await _readium.resume();
       } else {
-        await _readium.ttsEnable(TTSPreferences(speed: _ttsSpeed));
+        await _readium.ttsEnable(
+          TTSPreferences(speed: ttsEngineRate(_ttsSpeed)),
+        );
         await _readium.play(null);
       }
       if (mounted) {
@@ -599,7 +601,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     setState(() => _ttsSpeed = speed);
     if (!_ttsEnabled) return;
     try {
-      await _readium.ttsSetPreferences(TTSPreferences(speed: speed));
+      await _readium.ttsSetPreferences(
+        TTSPreferences(speed: ttsEngineRate(speed)),
+      );
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

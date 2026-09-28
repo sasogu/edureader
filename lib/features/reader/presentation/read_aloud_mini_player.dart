@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 
+/// Velocidad real del motor de voz que se muestra como «1.0×». La velocidad
+/// nativa de las voces resulta demasiado rápida para seguir la lectura.
+const ttsBaseRate = 0.8;
+
+/// Convierte la velocidad elegida por el usuario en la que recibe Readium.
+double ttsEngineRate(double speed) => speed * ttsBaseRate;
+
 /// Controles flotantes de la lectura en voz alta. No bloquean el libro: se
 /// puede pasar página, subrayar o abrir menús mientras sigue leyendo.
 class ReadAloudMiniPlayer extends StatefulWidget {
