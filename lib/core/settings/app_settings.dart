@@ -44,6 +44,17 @@ class AppSettings extends ChangeNotifier {
   double get lineHeight => _lineHeight;
   double get pageMargins => _pageMargins;
 
+  /// Fondo de la página, también para el margen que rodea al lector.
+  Color get readerBackgroundColor => _darkMode
+      ? const Color(0xff121212)
+      : _sepiaMode
+      ? const Color(0xfff1e7d0)
+      : const Color(0xfff7f4ed);
+
+  /// Readium solo aplica [pageMargins] a los lados; arriba y abajo el margen
+  /// lo pone la app y crece con el mismo ajuste.
+  double get verticalPageMargin => 28 * _pageMargins;
+
   ThemeMode get themeMode => _darkMode ? ThemeMode.dark : ThemeMode.light;
 
   EPUBPreferences get epubPreferences => EPUBPreferences(
@@ -51,11 +62,7 @@ class AppSettings extends ChangeNotifier {
     fontSize: _fontScale,
     lineHeight: _lineHeight,
     pageMargins: _pageMargins,
-    backgroundColor: _darkMode
-        ? const Color(0xff121212)
-        : _sepiaMode
-        ? const Color(0xfff1e7d0)
-        : const Color(0xfff7f4ed),
+    backgroundColor: readerBackgroundColor,
     textColor: _darkMode
         ? const Color(0xffeeeeee)
         : _sepiaMode

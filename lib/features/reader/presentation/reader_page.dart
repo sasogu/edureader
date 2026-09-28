@@ -1361,6 +1361,28 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
     final publication = _publication;
     if (publication == null) return const SizedBox.shrink();
+    return ListenableBuilder(
+      listenable: widget.settings,
+      builder: (context, child) => ColoredBox(
+        color: widget.settings.readerBackgroundColor,
+        child: SafeArea(
+          top: _isFullscreen,
+          bottom: _isFullscreen,
+          left: false,
+          right: false,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: widget.settings.verticalPageMargin,
+            ),
+            child: child,
+          ),
+        ),
+      ),
+      child: _buildReader(publication),
+    );
+  }
+
+  Widget _buildReader(Publication publication) {
     return ReadiumReaderWidget(
       publication: publication,
       initialLocator: _initialLocator,
