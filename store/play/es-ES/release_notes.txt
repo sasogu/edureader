@@ -1,0 +1,4 @@
+Primera versión en la tienda.
+• Biblioteca de EPUB con portadas, índice, búsqueda, marcadores, subrayados y notas.
+• Lectura en voz alta con minirreproductor flotante.
+• Sincronización opcional con Nextcloud y FreeWise.

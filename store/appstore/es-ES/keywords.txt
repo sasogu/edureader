@@ -1,0 +1,1 @@
+epub,libros,lector,ebook,subrayar,notas,voz alta,nextcloud,freewise,readwise,leer,biblioteca

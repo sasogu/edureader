@@ -1,0 +1,1 @@
+Nuevo minirreproductor de lectura en voz alta: escucha el libro mientras sigues leyendo, subrayando o buscando en él.

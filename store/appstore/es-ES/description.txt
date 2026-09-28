@@ -1,0 +1,30 @@
+EduReader es un lector de libros EPUB libre y sin anuncios, pensado para leer con calma, subrayar lo importante y conservar tus notas.
+
+LECTURA CÓMODA
+• Paginación real, pasando página con un gesto, y modo de pantalla completa.
+• Modo claro, sepia y oscuro.
+• Tamaño de letra, interlineado y márgenes a tu gusto.
+• Índice del libro, búsqueda de palabras o frases y salto a cualquier porcentaje.
+• Marcadores con nombre para volver a los pasajes que te interesan.
+
+SUBRAYADOS Y NOTAS
+• Subraya o resalta en varios colores y añade notas al texto seleccionado.
+• Exporta tus anotaciones en CSV compatible con Readwise y FreeWise, o envíalas directamente a tu servidor FreeWise.
+
+LECTURA EN VOZ ALTA
+• Escucha el libro con las voces del dispositivo, frase a frase y con el texto resaltado.
+• Un minirreproductor flotante te deja seguir usando el libro mientras escuchas; arrástralo arriba o abajo para que no tape el texto.
+• Ajusta la velocidad y controla la lectura desde la pantalla de bloqueo o el Centro de control.
+
+TU BIBLIOTECA, EN TUS DISPOSITIVOS
+• Biblioteca con portadas, búsqueda y orden por título, autor o fecha.
+• Sincronización opcional con tu propio Nextcloud: libros, posición de lectura y marcadores entre iPhone, iPad y Android.
+• La contraseña de aplicación de Nextcloud se guarda en el llavero del sistema.
+
+PRIVACIDAD
+EduReader no tiene cuentas, anuncios ni analítica. Tus libros y anotaciones se quedan en el dispositivo y solo viajan a los servidores de Nextcloud o FreeWise que tú configures.
+
+SOFTWARE LIBRE
+EduReader es código abierto con licencia MIT y usa el motor de lectura Readium. Código fuente y sugerencias: https://github.com/sasogu/edureader
+
+EduReader lee EPUB sin DRM. La lectura en voz alta depende de las voces instaladas en el dispositivo.
