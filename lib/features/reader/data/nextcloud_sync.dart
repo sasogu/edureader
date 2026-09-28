@@ -170,9 +170,9 @@ class NextcloudSync {
       204,
       404,
     }, 'eliminar un EPUB');
-    if (manifest.remove(hash) != null) {
-      await _uploadManifest(connection, manifest);
-    }
+    manifest.books.remove(hash);
+    manifest.deletedBooks[hash] = DateTime.now().toUtc();
+    await _uploadManifest(connection, manifest.books, manifest.deletedBooks);
   }
 
   Future<NextcloudSyncResult> _syncLibrary(List<EpubBook> localBooks) async {
@@ -182,17 +182,39 @@ class NextcloudSync {
 
     final manifest = await _downloadManifest(connection);
     final localByHash = <String, EpubBook>{};
+    final localBooksByHash = <String, List<EpubBook>>{};
     for (final book in localBooks) {
       final path = _bookPath(book);
       if (!await File(path).exists()) continue;
-      localByHash[await _sha256(path)] = book;
+      final hash = await _sha256(path);
+      final current = localByHash[hash];
+      if (current == null || book.createdAt.isAfter(current.createdAt)) {
+        localByHash[hash] = book;
+      }
+      localBooksByHash.putIfAbsent(hash, () => []).add(book);
+    }
+
+    var manifestChanged = false;
+    // A deletion is shared through the manifest. Remove older local copies so
+    // the next sync on this device cannot publish them again.
+    for (final entry in manifest.deletedBooks.entries.toList()) {
+      final localCopies = localBooksByHash[entry.key] ?? const <EpubBook>[];
+      if (localCopies.any((book) => book.createdAt.isAfter(entry.value))) {
+        // Re-importing the EPUB after its deletion is an intentional restore.
+        manifest.deletedBooks.remove(entry.key);
+        manifestChanged = true;
+      } else {
+        for (final staleBook in localCopies) {
+          await _library.removeBook(staleBook);
+        }
+        localByHash.remove(entry.key);
+        if (manifest.books.remove(entry.key) != null) manifestChanged = true;
+      }
     }
 
     var uploaded = 0;
     var downloaded = 0;
-    var manifestChanged = false;
-
-    for (final entry in manifest.values.toList()) {
+    for (final entry in manifest.books.values.toList()) {
       var book = localByHash[entry.sha256];
       if (book == null) {
         final path = await _downloadBook(connection, entry.sha256);
@@ -210,21 +232,26 @@ class NextcloudSync {
       }
 
       if (await _reconcileState(book, entry)) {
-        manifest[entry.sha256] = await _entryFromLocal(book, entry.sha256);
+        manifest.books[entry.sha256] = await _entryFromLocal(
+          book,
+          entry.sha256,
+        );
         manifestChanged = true;
       }
     }
 
     for (final item in localByHash.entries) {
-      if (manifest.containsKey(item.key)) continue;
+      if (manifest.books.containsKey(item.key)) continue;
       final book = item.value;
       await _uploadBook(connection, item.key, _bookPath(book));
-      manifest[item.key] = await _entryFromLocal(book, item.key);
+      manifest.books[item.key] = await _entryFromLocal(book, item.key);
       uploaded++;
       manifestChanged = true;
     }
 
-    if (manifestChanged) await _uploadManifest(connection, manifest);
+    if (manifestChanged || manifest.deletedBooks.isNotEmpty) {
+      await _uploadManifest(connection, manifest.books, manifest.deletedBooks);
+    }
     return NextcloudSyncResult(
       uploadedBooks: uploaded,
       downloadedBooks: downloaded,
@@ -236,7 +263,7 @@ class NextcloudSync {
   /// Si [isCancelled] devuelve true cuando llega el índice remoto, no se toca
   /// nada: sirve para descartar una sincronización que llegó tarde, cuando el
   /// lector ya está mostrando la posición local.
-  Future<void> syncBook(
+  Future<bool> syncBook(
     EpubBook book, {
     bool uploadIfMissing = true,
     bool Function()? isCancelled,
@@ -248,29 +275,33 @@ class NextcloudSync {
     ),
   );
 
-  Future<void> _syncBook(
+  Future<bool> _syncBook(
     EpubBook book, {
     required bool uploadIfMissing,
     bool Function()? isCancelled,
   }) async {
-    if (isCancelled?.call() ?? false) return;
+    if (isCancelled?.call() ?? false) return true;
     final connection = await _requireConnection();
     final path = _bookPath(book);
-    if (!await File(path).exists()) return;
+    if (!await File(path).exists()) return true;
     final hash = await _sha256(path);
     final manifest = await _downloadManifest(connection);
-    if (isCancelled?.call() ?? false) return;
-    final entry = manifest[hash];
+    if (isCancelled?.call() ?? false) return true;
+    final deletedAt = manifest.deletedBooks[hash];
+    if (deletedAt != null && !book.createdAt.isAfter(deletedAt)) return false;
+    if (deletedAt != null) manifest.deletedBooks.remove(hash);
+    final entry = manifest.books[hash];
     if (entry == null) {
-      if (!uploadIfMissing) return;
+      if (!uploadIfMissing) return true;
       await _ensureCollection(connection, '');
       await _ensureCollection(connection, 'books');
       await _uploadBook(connection, hash, path);
     } else if (!await _reconcileState(book, entry)) {
-      return;
+      return true;
     }
-    manifest[hash] = await _entryFromLocal(book, hash);
-    await _uploadManifest(connection, manifest);
+    manifest.books[hash] = await _entryFromLocal(book, hash);
+    await _uploadManifest(connection, manifest.books, manifest.deletedBooks);
+    return true;
   }
 
   /// Aplica el estado remoto si es más reciente. Devuelve true cuando el
@@ -308,7 +339,7 @@ class NextcloudSync {
     );
   }
 
-  Future<Map<String, _NextcloudBookEntry>> _downloadManifest(
+  Future<_NextcloudManifest> _downloadManifest(
     NextcloudConnection connection,
   ) async {
     final response = await _client.send(
@@ -318,7 +349,7 @@ class NextcloudSync {
     );
     if (response.statusCode == 404) {
       await response.stream.drain<void>();
-      return {};
+      return _NextcloudManifest();
     }
     if (response.statusCode != 200) {
       await response.stream.drain<void>();
@@ -329,7 +360,7 @@ class NextcloudSync {
     final json =
         jsonDecode(utf8.decode(await response.stream.toBytes()))
             as Map<String, dynamic>;
-    if (json['schemaVersion'] != 1 || json['books'] is! List) {
+    if (!{1, 2}.contains(json['schemaVersion']) || json['books'] is! List) {
       throw const FormatException(
         'El índice remoto de EduReader no es compatible.',
       );
@@ -339,17 +370,34 @@ class NextcloudSync {
       final entry = _NextcloudBookEntry.fromJson(value as Map<String, dynamic>);
       entries[entry.sha256] = entry;
     }
-    return entries;
+    final deletedBooks = <String, DateTime>{};
+    final deletedJson = json['deletedBooks'];
+    if (deletedJson is Map<String, dynamic>) {
+      for (final item in deletedJson.entries) {
+        if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(item.key)) continue;
+        final deletedAt = item.value is String
+            ? DateTime.tryParse(item.value as String)
+            : null;
+        if (deletedAt != null) deletedBooks[item.key] = deletedAt.toUtc();
+      }
+    }
+    return _NextcloudManifest(books: entries, deletedBooks: deletedBooks);
   }
 
   Future<void> _uploadManifest(
     NextcloudConnection connection,
-    Map<String, _NextcloudBookEntry> entries,
-  ) async {
+    Map<String, _NextcloudBookEntry> entries, [
+    Map<String, DateTime> deletedBooks = const {},
+  ]) async {
     final body = jsonEncode({
-      'schemaVersion': 1,
+      'schemaVersion': deletedBooks.isEmpty ? 1 : 2,
       'updatedAt': DateTime.now().toUtc().toIso8601String(),
       'books': entries.values.map((entry) => entry.toJson()).toList(),
+      if (deletedBooks.isNotEmpty)
+        'deletedBooks': {
+          for (final entry in deletedBooks.entries)
+            entry.key: entry.value.toUtc().toIso8601String(),
+        },
     });
     final response = await _client.send(
       http.Request('PUT', _davUri(connection, _manifestPath))
@@ -499,6 +547,17 @@ class NextcloudSync {
 
   Future<String> _sha256(String path) async =>
       (await sha256.bind(File(path).openRead()).first).toString();
+}
+
+class _NextcloudManifest {
+  _NextcloudManifest({
+    Map<String, _NextcloudBookEntry>? books,
+    Map<String, DateTime>? deletedBooks,
+  }) : books = books ?? {},
+       deletedBooks = deletedBooks ?? {};
+
+  final Map<String, _NextcloudBookEntry> books;
+  final Map<String, DateTime> deletedBooks;
 }
 
 class _NextcloudBookEntry {

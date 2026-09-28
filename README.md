@@ -73,8 +73,11 @@ configura el servidor HTTPS, el usuario y una contraseña de aplicación; esta
 última se guarda en el almacén seguro del sistema. EduReader sube y descarga
 los EPUB, los deduplica por SHA-256 y sincroniza el localizador de lectura y los
 marcadores, usando la última modificación cuando hay cambios en ambos
-dispositivos. Además, con la conexión configurada, cada libro se sincroniza
-solo al abrirlo (se trae la última posición, con un máximo de 5 segundos de
+dispositivos. Al eliminar un libro, Nextcloud conserva una marca de borrado:
+los dispositivos que aún tengan una copia la quitan en su siguiente
+sincronización y no vuelven a subirla; para ello, esos dispositivos deben usar
+esta versión de EduReader. Además, con la conexión configurada,
+cada libro se sincroniza solo al abrirlo (se trae la última posición, con un máximo de 5 segundos de
 espera) y al cerrarlo (se publica la posición y, si falta, se sube el EPUB). También se publica la
 posición cuando la app pasa a segundo plano con un libro abierto.
 Esta sincronización automática es silenciosa: si no hay red, se sigue leyendo

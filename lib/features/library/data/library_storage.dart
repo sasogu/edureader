@@ -21,7 +21,15 @@ class LibraryStorage {
       try {
         if (!await File(path).exists()) continue;
         final book = await EpubParserService.parseFromFile(path);
-        books.add(book.copyWith(id: path));
+        final addedAt = DateTime.tryParse(
+          preferences.getString(_addedAtKey(path)) ?? '',
+        );
+        books.add(
+          book.copyWith(
+            id: path,
+            createdAt: addedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+          ),
+        );
         validPaths.add(path);
       } catch (_) {
         // Un EPUB dañado no debe impedir que se cargue el resto de la biblioteca.
@@ -60,6 +68,10 @@ class LibraryStorage {
       storedPaths.add(destinationPath);
       await preferences.setStringList(_pathsKey, storedPaths);
     }
+    await preferences.setString(
+      _addedAtKey(destinationPath),
+      DateTime.now().toUtc().toIso8601String(),
+    );
 
     return book.copyWith(id: destinationPath);
   }
@@ -77,6 +89,7 @@ class LibraryStorage {
     await ReadiumStorage().removeBookState(book.id);
     await preferences.remove('reading_progress_${book.id}');
     await preferences.remove(_tagsKey(book.id));
+    await preferences.remove(_addedAtKey(book.id));
   }
 
   Future<List<String>> loadBookTags(String bookId) async {
@@ -102,4 +115,6 @@ class LibraryStorage {
   }
 
   String _tagsKey(String bookId) => '$_tagsPrefix$bookId';
+
+  String _addedAtKey(String bookId) => 'library_book_added_at_$bookId';
 }

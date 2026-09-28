@@ -178,6 +178,129 @@ void main() {
     expect(await storage.loadStateModifiedAt('local-book'), modifiedAt);
   });
 
+  group('book deletion sync', () {
+    late Directory directory;
+    late File epub;
+    late EpubBook book;
+    late String hash;
+
+    setUp(() async {
+      directory = await Directory.systemTemp.createTemp('edureader-delete-');
+      epub = File('${directory.path}/book.epub');
+      final bytes = utf8.encode('epub-to-delete');
+      await epub.writeAsBytes(bytes);
+      hash = sha256.convert(bytes).toString();
+      book = EpubBook(
+        id: epub.path,
+        metadata: EpubMetadata(title: 'Libro borrado', creator: 'Autora'),
+        chapters: [],
+        spine: [],
+        manifest: {},
+        tableOfContents: [],
+        navigation: [],
+        filePath: epub.path,
+        createdAt: DateTime.utc(2026, 1),
+      );
+    });
+
+    tearDown(() => directory.delete(recursive: true));
+
+    Future<NextcloudSync> connect(MockClient client) async {
+      final sync = NextcloudSync(
+        client: client,
+        secretStore: _MemorySecretStore(),
+      );
+      await sync.saveConnection(
+        serverUrl: 'https://cloud.example.org',
+        username: 'reader',
+        appPassword: 'secret',
+      );
+      return sync;
+    }
+
+    test('publishes a tombstone when removing a book from Nextcloud', () async {
+      final methods = <String>[];
+      Map<String, dynamic>? savedManifest;
+      final sync = await connect(
+        MockClient((request) async {
+          methods.add(request.method);
+          if (request.method == 'GET') {
+            return http.Response(
+              jsonEncode({'schemaVersion': 1, 'books': []}),
+              200,
+            );
+          }
+          if (request.method == 'DELETE') return http.Response('', 204);
+          if (request.method == 'PUT') {
+            savedManifest = jsonDecode(request.body) as Map<String, dynamic>;
+            return http.Response('', 204);
+          }
+          return http.Response('', 405);
+        }),
+      );
+
+      await sync.deleteBook(book);
+
+      expect(methods, ['GET', 'DELETE', 'PUT']);
+      expect(savedManifest!['schemaVersion'], 2);
+      expect(savedManifest!['books'], isEmpty);
+      expect(savedManifest!['deletedBooks'][hash], isA<String>());
+    });
+
+    test('removes a stale local copy instead of uploading it again', () async {
+      SharedPreferences.setMockInitialValues({
+        'library_epub_paths': [epub.path],
+      });
+      final deletedAt = DateTime.utc(2026, 9, 28);
+      final methods = <String>[];
+      Map<String, dynamic>? savedManifest;
+      final sync = await connect(
+        MockClient((request) async {
+          methods.add(request.method);
+          if (request.method == 'MKCOL') return http.Response('', 201);
+          if (request.method == 'GET') {
+            return http.Response(
+              jsonEncode({
+                'schemaVersion': 2,
+                'books': [
+                  {
+                    'sha256': hash,
+                    'title': 'Libro borrado',
+                    'modifiedAt': DateTime.utc(2026).toIso8601String(),
+                    'locator': null,
+                    'bookmarks': [],
+                  },
+                ],
+                'deletedBooks': {hash: deletedAt.toIso8601String()},
+              }),
+              200,
+            );
+          }
+          if (request.method == 'PUT') {
+            expect(request.url.path, endsWith('library-v1.json'));
+            savedManifest = jsonDecode(request.body) as Map<String, dynamic>;
+            return http.Response('', 204);
+          }
+          return http.Response('', 405);
+        }),
+      );
+
+      final result = await sync.syncLibrary([book]);
+
+      expect(result.uploadedBooks, 0);
+      expect(methods.where((method) => method == 'PUT'), ['PUT']);
+      expect(savedManifest!['books'], isEmpty);
+      expect(savedManifest!['deletedBooks'][hash], deletedAt.toIso8601String());
+      expect(await epub.exists(), isFalse);
+      expect(
+        (await SharedPreferences.getInstance()).getStringList(
+          'library_epub_paths',
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('syncBook', () {
     late Directory directory;
     late EpubBook book;

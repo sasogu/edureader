@@ -103,7 +103,7 @@ class _LibraryPageState extends State<LibraryPage> {
     // Si la respuesta llega cuando el lector ya está abierto, se descarta:
     // aplicarla o publicarla entonces pisaría la posición que se está leyendo.
     var readerOpened = false;
-    await _autoSyncBook(
+    final shouldOpen = await _autoSyncBook(
       book,
       uploadIfMissing: false,
       timeout: const Duration(seconds: 5),
@@ -111,22 +111,53 @@ class _LibraryPageState extends State<LibraryPage> {
     );
     readerOpened = true;
     if (!mounted) return;
+    if (!shouldOpen) {
+      await _removeBookAfterRemoteDelete(book, showMessage: true);
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ReaderPage(
           book: book,
           settings: widget.settings,
-          onAppBackground: () => _autoSyncBook(book),
+          onAppBackground: () async {
+            await _autoSyncBook(book);
+          },
         ),
       ),
     );
     if (!mounted) return;
-    unawaited(_autoSyncBook(book));
+    unawaited(
+      _autoSyncBook(book).then<void>((shouldKeep) async {
+        if (!shouldKeep && mounted) {
+          await _removeBookAfterRemoteDelete(book);
+        }
+      }),
+    );
+  }
+
+  Future<void> _removeBookAfterRemoteDelete(
+    EpubBook book, {
+    bool showMessage = false,
+  }) async {
+    await _storage.removeBook(book);
+    if (!mounted) return;
+    setState(() {
+      _books.removeWhere((item) => item.id == book.id);
+      _bookTags.remove(book.id);
+    });
+    if (showMessage) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Este libro se eliminó desde otro dispositivo.'),
+        ),
+      );
+    }
   }
 
   // Sincronización silenciosa: sin conexión configurada, sin red o con el
   // servidor lento, se sigue leyendo con el estado local.
-  Future<void> _autoSyncBook(
+  Future<bool> _autoSyncBook(
     EpubBook book, {
     bool uploadIfMissing = true,
     Duration timeout = const Duration(minutes: 2),
@@ -135,11 +166,11 @@ class _LibraryPageState extends State<LibraryPage> {
     // No se descarta aunque haya otra sincronización en marcha: NextcloudSync
     // las pone en fila, y saltarse la del cierre perdería la última posición.
     final connection = await _nextcloud.loadConnection();
-    if (connection == null || connection.appPassword.isEmpty) return;
-    if (!mounted) return;
+    if (connection == null || connection.appPassword.isEmpty) return true;
+    if (!mounted) return true;
     setState(() => _autoSyncs++);
     try {
-      await _nextcloud
+      return await _nextcloud
           .syncBook(
             book,
             uploadIfMissing: uploadIfMissing,
@@ -148,6 +179,7 @@ class _LibraryPageState extends State<LibraryPage> {
           .timeout(timeout);
     } catch (_) {
       // La sincronización manual muestra los errores; la automática no molesta.
+      return true;
     } finally {
       if (mounted) setState(() => _autoSyncs--);
     }
