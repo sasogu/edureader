@@ -1079,9 +1079,6 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         _selectedTextEvent = null;
         _isSavingHighlight = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Subrayado guardado.')));
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSavingHighlight = false);
