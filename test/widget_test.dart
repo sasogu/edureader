@@ -1,10 +1,17 @@
 import 'package:edureader/app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('muestra la biblioteca vacía', (tester) async {
+    SharedPreferences.setMockInitialValues({'app_language': 'es'});
+    tester.binding.platformDispatcher.localeTestValue = const Locale(
+      'es',
+      'ES',
+    );
     await tester.pumpWidget(const EduReaderApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('EduReader'), findsOneWidget);
     expect(find.text('Tu biblioteca está vacía'), findsOneWidget);
@@ -15,7 +22,13 @@ void main() {
   testWidgets(
     'el menú de Nextcloud sigue abierto hasta elegir una opción',
     (tester) async {
+      SharedPreferences.setMockInitialValues({'app_language': 'es'});
+      tester.binding.platformDispatcher.localeTestValue = const Locale(
+        'es',
+        'ES',
+      );
       await tester.pumpWidget(const EduReaderApp());
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('Sincronización Nextcloud'));
       await tester.pumpAndSettle();

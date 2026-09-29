@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Velocidad real del motor de voz que se muestra como «1.0×». La velocidad
 /// nativa de las voces resulta demasiado rápida para seguir la lectura.
 const ttsBaseRate = 0.8;
@@ -50,6 +52,7 @@ class _ReadAloudMiniPlayerState extends State<ReadAloudMiniPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onVerticalDragEnd: widget.onMove == null
@@ -79,19 +82,19 @@ class _ReadAloudMiniPlayerState extends State<ReadAloudMiniPlayer> {
                     ),
                     const Spacer(),
                     IconButton(
-                      tooltip: 'Frase anterior',
+                      tooltip: l10n.previousSentence,
                       onPressed: () => widget.onSkip(false),
                       icon: const Icon(Icons.skip_previous),
                     ),
                     IconButton.filled(
-                      tooltip: widget.isPlaying ? 'Pausar' : 'Reproducir',
+                      tooltip: widget.isPlaying ? l10n.pause : l10n.play,
                       onPressed: widget.isBusy ? null : widget.onTogglePlayback,
                       icon: Icon(
                         widget.isPlaying ? Icons.pause : Icons.play_arrow,
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Frase siguiente',
+                      tooltip: l10n.nextSentence,
                       onPressed: () => widget.onSkip(true),
                       icon: const Icon(Icons.skip_next),
                     ),
@@ -100,11 +103,11 @@ class _ReadAloudMiniPlayerState extends State<ReadAloudMiniPlayer> {
                       onPressed: () => setState(() => _showSpeed = !_showSpeed),
                       child: Text(
                         '${_speed.toStringAsFixed(1)}×',
-                        semanticsLabel: 'Velocidad de lectura',
+                        semanticsLabel: l10n.readingSpeed,
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Cerrar lectura en voz alta',
+                      tooltip: l10n.closeReadAloud,
                       onPressed: widget.onClose,
                       icon: const Icon(Icons.close),
                     ),
@@ -118,7 +121,7 @@ class _ReadAloudMiniPlayerState extends State<ReadAloudMiniPlayer> {
                     divisions: 15,
                     label: '${_speed.toStringAsFixed(1)}×',
                     semanticFormatterCallback: (value) =>
-                        'Velocidad de lectura: ${value.toStringAsFixed(1)} veces',
+                        l10n.speedValue(value.toStringAsFixed(1)),
                     onChanged: (value) => setState(() => _speed = value),
                     onChangeEnd: widget.onSpeedChanged,
                   ),

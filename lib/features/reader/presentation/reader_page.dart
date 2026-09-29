@@ -13,6 +13,7 @@ import '../data/reader_bookmark.dart';
 import '../data/readium_storage.dart';
 import 'highlight_color_dialog.dart';
 import 'read_aloud_mini_player.dart';
+import '../../../l10n/app_localizations.dart';
 
 enum _ReaderMenuAction {
   readAloud,
@@ -41,6 +42,8 @@ class ReaderPage extends StatefulWidget {
 }
 
 class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
   final FlutterReadium _readium = FlutterReadium();
   final ReadiumStorage _storage = ReadiumStorage();
   final FreeWiseExporter _exporter = FreeWiseExporter();
@@ -118,9 +121,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No se pudo guardar la posición actual: $error'),
-          ),
+          SnackBar(content: Text(_l10n.savePositionFailed(error.toString()))),
         );
       }
     }
@@ -141,7 +142,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     _readium.setEPUBPreferences(preferences).catchError((Object error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudieron aplicar los ajustes: $error')),
+          SnackBar(
+            content: Text(_l10n.applyPreferencesFailed(error.toString())),
+          ),
         );
       }
     });
@@ -168,82 +171,82 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
           context: context,
           builder: (dialogContext) => StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(
-              title: const Text('Apariencia de lectura'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Modo oscuro'),
-                    value: darkMode,
-                    onChanged: (value) => setDialogState(() {
-                      darkMode = value;
-                      if (value) sepiaMode = false;
-                    }),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Tono sepia'),
-                    value: sepiaMode,
-                    onChanged: (value) => setDialogState(() {
-                      sepiaMode = value;
-                      if (value) darkMode = false;
-                    }),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Justificar texto'),
-                    subtitle: const Text(
-                      'Alinea el texto a ambos márgenes cuando el EPUB lo permita.',
+              title: Text(_l10n.readerAppearance),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(_l10n.darkMode),
+                      value: darkMode,
+                      onChanged: (value) => setDialogState(() {
+                        darkMode = value;
+                        if (value) sepiaMode = false;
+                      }),
                     ),
-                    value: justifyText,
-                    onChanged: (value) =>
-                        setDialogState(() => justifyText = value),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
-                  Slider(
-                    value: fontScale,
-                    min: 0.8,
-                    max: 2.5,
-                    divisions: 17,
-                    label: '${(fontScale * 100).round()}%',
-                    semanticFormatterCallback: (value) =>
-                        'Tamaño de letra: ${(value * 100).round()} por ciento',
-                    onChanged: (value) =>
-                        setDialogState(() => fontScale = value),
-                  ),
-                  Text('Interlineado · ${lineHeight.toStringAsFixed(1)}'),
-                  Slider(
-                    value: lineHeight,
-                    min: 1,
-                    max: 2,
-                    divisions: 10,
-                    label: lineHeight.toStringAsFixed(1),
-                    semanticFormatterCallback: (value) =>
-                        'Interlineado: ${value.toStringAsFixed(1)}',
-                    onChanged: (value) =>
-                        setDialogState(() => lineHeight = value),
-                  ),
-                  Text('Márgenes · ${(pageMargins * 100).round()}%'),
-                  Slider(
-                    value: pageMargins,
-                    min: 0.5,
-                    max: 2,
-                    divisions: 15,
-                    label: '${(pageMargins * 100).round()}%',
-                    semanticFormatterCallback: (value) =>
-                        'Márgenes: ${(value * 100).round()} por ciento',
-                    onChanged: (value) =>
-                        setDialogState(() => pageMargins = value),
-                  ),
-                ],
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(_l10n.sepiaTone),
+                      value: sepiaMode,
+                      onChanged: (value) => setDialogState(() {
+                        sepiaMode = value;
+                        if (value) darkMode = false;
+                      }),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(_l10n.justifyText),
+                      subtitle: Text(_l10n.justifyHint),
+                      value: justifyText,
+                      onChanged: (value) =>
+                          setDialogState(() => justifyText = value),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_l10n.fontSize((fontScale * 100).round())),
+                    Slider(
+                      value: fontScale,
+                      min: 0.8,
+                      max: 2.5,
+                      divisions: 17,
+                      label: '${(fontScale * 100).round()}%',
+                      semanticFormatterCallback: (value) =>
+                          _l10n.fontSizeSemantics((value * 100).round()),
+                      onChanged: (value) =>
+                          setDialogState(() => fontScale = value),
+                    ),
+                    Text(_l10n.lineHeight(lineHeight.toStringAsFixed(1))),
+                    Slider(
+                      value: lineHeight,
+                      min: 1,
+                      max: 2,
+                      divisions: 10,
+                      label: lineHeight.toStringAsFixed(1),
+                      semanticFormatterCallback: (value) =>
+                          _l10n.lineHeightSemantics(value.toStringAsFixed(1)),
+                      onChanged: (value) =>
+                          setDialogState(() => lineHeight = value),
+                    ),
+                    Text(_l10n.margins((pageMargins * 100).round())),
+                    Slider(
+                      value: pageMargins,
+                      min: 0.5,
+                      max: 2,
+                      divisions: 15,
+                      label: '${(pageMargins * 100).round()}%',
+                      semanticFormatterCallback: (value) =>
+                          _l10n.marginsSemantics((value * 100).round()),
+                      onChanged: (value) =>
+                          setDialogState(() => pageMargins = value),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancelar'),
+                  child: Text(_l10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(dialogContext, (
@@ -254,7 +257,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                     pageMargins: pageMargins,
                     justifyText: justifyText,
                   )),
-                  child: const Text('Aplicar'),
+                  child: Text(_l10n.apply),
                 ),
               ],
             ),
@@ -277,9 +280,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     if (publication == null) return;
     final links = _flattenContents(publication.tableOfContents).toList();
     if (links.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Este EPUB no incluye un índice.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.tocMissing)));
       return;
     }
 
@@ -300,12 +303,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                       children: [
                         Expanded(
                           child: Text(
-                            'Índice del libro',
+                            _l10n.readerToc,
                             style: Theme.of(sheetContext).textTheme.titleLarge,
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Cerrar índice',
+                          tooltip: _l10n.closeToc,
                           onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close),
                         ),
@@ -345,16 +348,16 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
     final locator = publication.locatorFromLink(selectedLink);
     if (locator == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir esa sección.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.sectionOpenFailed)));
       return;
     }
     final navigated = await _readium.goToLocator(locator);
     if (mounted && !navigated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir esa sección.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.sectionOpenFailed)));
     }
   }
 
@@ -363,23 +366,23 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     final query = await showCompletedDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Buscar en el libro'),
+        title: Text(_l10n.searchInBook),
         content: TextField(
           controller: controller,
           autofocus: true,
           textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(labelText: 'Palabra o frase'),
+          decoration: InputDecoration(labelText: _l10n.searchTerm),
           onSubmitted: (_) => Navigator.pop(dialogContext, controller.text),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
+            child: Text(_l10n.cancel),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, controller.text),
             icon: const Icon(Icons.search),
-            label: const Text('Buscar'),
+            label: Text(_l10n.search),
           ),
         ],
       ),
@@ -395,7 +398,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       if (!mounted) return;
       if (results.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No hay resultados para «$searchKey».')),
+          SnackBar(content: Text(_l10n.searchNoResults(searchKey))),
         );
         return;
       }
@@ -403,7 +406,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo buscar en el EPUB: $error')),
+        SnackBar(content: Text(_l10n.searchFailed(error.toString()))),
       );
     } finally {
       if (mounted) setState(() => _isSearching = false);
@@ -434,17 +437,19 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Resultados de búsqueda',
+                                _l10n.searchResults,
                                 style: Theme.of(
                                   sheetContext,
                                 ).textTheme.titleLarge,
                               ),
-                              Text('«$query» · ${results.length} resultados'),
+                              Text(
+                                _l10n.searchResultsCount(query, results.length),
+                              ),
                             ],
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Cerrar resultados',
+                          tooltip: _l10n.closeResults,
                           onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close),
                         ),
@@ -462,7 +467,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                             ? result.chapterTitle!.trim()
                             : result.locator.title?.trim().isNotEmpty == true
                             ? result.locator.title!.trim()
-                            : 'Capítulo';
+                            : _l10n.chapter;
                         final text = result.locator.text;
                         final excerpt =
                             [text?.before, text?.highlight, text?.after]
@@ -497,9 +502,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   Future<void> _goToSearchResult(TextSearchResult result) async {
     final navigated = await _readium.goToLocator(result.locator);
     if (mounted && !navigated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir ese resultado.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.searchResultFailed)));
     }
   }
 
@@ -509,12 +514,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Ir a una posición'),
+          title: Text(_l10n.goToPosition),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Progreso del libro: ${(selectedProgress * 100).round()}%'),
+              Text(_l10n.bookProgress((selectedProgress * 100).round())),
               Slider(
                 value: selectedProgress,
                 min: 0,
@@ -522,7 +527,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                 divisions: 100,
                 label: '${(selectedProgress * 100).round()}%',
                 semanticFormatterCallback: (value) =>
-                    'Progreso del libro: ${(value * 100).round()} por ciento',
+                    _l10n.bookProgress((value * 100).round()),
                 onChanged: (value) =>
                     setDialogState(() => selectedProgress = value),
               ),
@@ -531,11 +536,11 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
+              child: Text(_l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, selectedProgress),
-              child: const Text('Ir'),
+              child: Text(_l10n.go),
             ),
           ],
         ),
@@ -547,17 +552,17 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       final navigated = await _readium.goToProgression(progress);
       if (!mounted) return;
       if (!navigated) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo ir a esa posición.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.progressFailed)));
         return;
       }
       setState(() => _readingProgress = progress);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo cambiar de posición: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.progressFailed)));
     }
   }
 
@@ -585,9 +590,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No se pudo iniciar la lectura en voz alta: $error'),
-          ),
+          SnackBar(content: Text(_l10n.readAloudFailed(error.toString()))),
         );
       }
     } finally {
@@ -605,7 +608,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo avanzar en la lectura: $error')),
+          SnackBar(content: Text(_l10n.readAloudSkipFailed(error.toString()))),
         );
       }
     }
@@ -621,7 +624,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo cambiar la velocidad: $error')),
+          SnackBar(content: Text(_l10n.readAloudSpeedFailed(error.toString()))),
         );
       }
     }
@@ -682,36 +685,36 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('Más opciones'),
+              title: Text(_l10n.readerMore),
               trailing: IconButton(
-                tooltip: 'Cerrar',
+                tooltip: _l10n.close,
                 onPressed: () => Navigator.of(sheetContext).pop(),
                 icon: const Icon(Icons.close),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.volume_up_outlined),
-              title: const Text('Lectura en voz alta'),
+              title: Text(_l10n.readAloud),
               onTap: () =>
                   Navigator.of(sheetContext).pop(_ReaderMenuAction.readAloud),
             ),
             ListTile(
               leading: const Icon(Icons.linear_scale),
-              title: const Text('Ir a una posición'),
+              title: Text(_l10n.goToPosition),
               onTap: () => Navigator.of(
                 sheetContext,
               ).pop(_ReaderMenuAction.goToProgress),
             ),
             ListTile(
               leading: const Icon(Icons.ios_share_outlined),
-              title: const Text('Exportar anotaciones'),
+              title: Text(_l10n.exportAnnotations),
               onTap: () => Navigator.of(
                 sheetContext,
               ).pop(_ReaderMenuAction.exportAnnotations),
             ),
             ListTile(
               leading: const Icon(Icons.cloud_upload_outlined),
-              title: const Text('Sincronizar con FreeWise'),
+              title: Text(_l10n.syncFreewise),
               onTap: () => Navigator.of(
                 sheetContext,
               ).pop(_ReaderMenuAction.syncAnnotations),
@@ -738,9 +741,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   Future<void> _addBookmark() async {
     final locator = _currentLocator ?? _initialLocator;
     if (locator == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aún no se conoce la posición actual.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.currentPositionUnknown)));
       return;
     }
 
@@ -748,25 +751,25 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     final label = await showCompletedDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Añadir marcador'),
+        title: Text(_l10n.addBookmark),
         content: TextField(
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Nombre (opcional)',
-            hintText: 'Por ejemplo, “Capítulo favorito”',
+          decoration: InputDecoration(
+            labelText: _l10n.bookmarkName,
+            hintText: _l10n.bookmarkExample,
           ),
           onSubmitted: (_) => Navigator.pop(dialogContext, controller.text),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
+            child: Text(_l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('Guardar'),
+            child: Text(_l10n.save),
           ),
         ],
       ),
@@ -784,11 +787,11 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       setState(() => _bookmarks = updated);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Marcador guardado.')));
+      ).showSnackBar(SnackBar(content: Text(_l10n.bookmarkSaved)));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo guardar el marcador: $error')),
+        SnackBar(content: Text(_l10n.bookmarkSaveFailed(error.toString()))),
       );
     }
   }
@@ -814,12 +817,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                           children: [
                             Expanded(
                               child: Text(
-                                'Marcadores',
+                                _l10n.readerBookmarks,
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Añadir marcador aquí',
+                              tooltip: _l10n.addBookmarkHere,
                               onPressed: () {
                                 Navigator.pop(sheetContext);
                                 _addBookmark();
@@ -827,7 +830,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                               icon: const Icon(Icons.bookmark_add_outlined),
                             ),
                             IconButton(
-                              tooltip: 'Cerrar marcadores',
+                              tooltip: _l10n.closeBookmarks,
                               onPressed: () => Navigator.pop(sheetContext),
                               icon: const Icon(Icons.close),
                             ),
@@ -836,11 +839,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                       ),
                       const Divider(height: 1),
                       if (bookmarks.isEmpty)
-                        const Expanded(
-                          child: Center(
-                            child: Text('Todavía no has guardado marcadores.'),
-                          ),
-                        )
+                        Expanded(child: Center(child: Text(_l10n.noBookmarks)))
                       else
                         Expanded(
                           child: ListView.builder(
@@ -852,7 +851,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                                   : bookmark.locator.title?.trim().isNotEmpty ==
                                         true
                                   ? bookmark.locator.title!.trim()
-                                  : 'Punto ${index + 1}';
+                                  : _l10n.bookmarkPoint(index + 1);
                               final progression =
                                   bookmark.locator.locations?.progression;
                               final subtitle = progression == null
@@ -867,7 +866,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                                   _goToBookmark(bookmark);
                                 },
                                 trailing: IconButton(
-                                  tooltip: 'Eliminar marcador',
+                                  tooltip: _l10n.deleteBookmark,
                                   icon: const Icon(Icons.delete_outline),
                                   onPressed: () async {
                                     final messenger = ScaffoldMessenger.of(
@@ -889,7 +888,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                                         messenger.showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              'No se pudo eliminar el marcador: $error',
+                                              _l10n.bookmarkDeleteFailed(
+                                                error.toString(),
+                                              ),
                                             ),
                                           ),
                                         );
@@ -915,9 +916,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   Future<void> _goToBookmark(ReaderBookmark bookmark) async {
     final navigated = await _readium.goToLocator(bookmark.locator);
     if (mounted && !navigated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir ese marcador.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.bookmarkOpenFailed)));
     }
   }
 
@@ -925,7 +926,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     final path = widget.book.filePath;
     if (path == null || path.isEmpty) {
       setState(() {
-        _error = 'El EPUB no tiene una ruta local disponible.';
+        _error = _l10n.readerPathMissing;
         _isLoading = false;
       });
       return;
@@ -980,7 +981,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = 'No se ha podido abrir el EPUB con Readium: $error';
+        _error = _l10n.readerError(error.toString());
         _isLoading = false;
       });
     }
@@ -992,11 +993,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       await _readium.applyDecorations('edureader', _decorations);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudieron mostrar los subrayados guardados.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.restoreHighlightsFailed)));
     }
   }
 
@@ -1033,11 +1032,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       await _saveHighlight(locator, selectedText, color);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo guardar el color del subrayado.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.highlightColorFailed)));
       }
     } finally {
       if (mounted) setState(() => _isChoosingHighlight = false);
@@ -1083,7 +1080,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() => _isSavingHighlight = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo guardar el subrayado: $error')),
+        SnackBar(content: Text(_l10n.highlightSaveFailed(error.toString()))),
       );
     }
   }
@@ -1106,18 +1103,18 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar subrayado'),
+        title: Text(_l10n.deleteHighlight),
         content: Text(
-          decoration.locator.text?.highlight ?? '¿Eliminar este subrayado?',
+          decoration.locator.text?.highlight ?? _l10n.confirmDeleteHighlight,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(_l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Eliminar'),
+            child: Text(_l10n.delete),
           ),
         ],
       ),
@@ -1153,7 +1150,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     setState(() => _decorations = remaining);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Subrayado eliminado.')));
+    ).showSnackBar(SnackBar(content: Text(_l10n.highlightDeleted)));
   }
 
   Future<void> _applyHighlight(SelectionActionEvent event) {
@@ -1174,21 +1171,21 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     final note = await showCompletedDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Añadir nota'),
+        title: Text(_l10n.addNote),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 5,
-          decoration: const InputDecoration(hintText: 'Escribe una nota'),
+          decoration: InputDecoration(hintText: _l10n.noteHint),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(_l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Guardar'),
+            child: Text(_l10n.save),
           ),
         ],
       ),
@@ -1235,9 +1232,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   Future<void> _exportAnnotations() async {
     final count = await _exporter.exportBook(widget.book);
     if (!mounted || count == null || count == 0) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$count anotaciones exportadas a CSV.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(_l10n.annotationsExported(count))));
   }
 
   Future<void> _syncIfConfigured() async {
@@ -1247,15 +1244,13 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
       final count = await _sync.syncBook(widget.book);
       if (!mounted || count == 0) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nuevas anotaciones sincronizadas.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.annotationsSynced)));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No se pudo sincronizar automáticamente: $error'),
-        ),
+        SnackBar(content: Text(_l10n.automaticSyncFailed(error.toString()))),
       );
     }
   }
@@ -1268,21 +1263,21 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       final configuredUrl = await showCompletedDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Configurar FreeWise'),
+          title: Text(_l10n.configureFreewise),
           content: TextField(
             controller: controller,
             autofocus: true,
             keyboardType: TextInputType.url,
-            decoration: const InputDecoration(labelText: 'URL del servidor'),
+            decoration: InputDecoration(labelText: _l10n.freewiseUrl),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+              child: Text(_l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('Guardar y sincronizar'),
+              child: Text(_l10n.saveAndSync),
             ),
           ],
         ),
@@ -1301,9 +1296,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            count == 0
-                ? 'No hay anotaciones nuevas para sincronizar.'
-                : 'Anotaciones enviadas a FreeWise.',
+            count == 0 ? _l10n.noNewAnnotations : _l10n.annotationsSent,
           ),
         ),
       );
@@ -1312,7 +1305,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo sincronizar con FreeWise: $error')),
+        SnackBar(content: Text(_l10n.freewiseSyncFailed(error.toString()))),
       );
     }
   }
@@ -1331,35 +1324,35 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                   visualDensity: VisualDensity.compact,
                   iconSize: 21,
                   onPressed: _toggleFullscreen,
-                  tooltip: 'Pantalla completa',
+                  tooltip: _l10n.fullscreen,
                   icon: const Icon(Icons.fullscreen),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   iconSize: 21,
                   onPressed: _openTableOfContents,
-                  tooltip: 'Índice del libro',
+                  tooltip: _l10n.readerToc,
                   icon: const Icon(Icons.menu_book_outlined),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   iconSize: 21,
                   onPressed: _openBookmarks,
-                  tooltip: 'Marcadores',
+                  tooltip: _l10n.readerBookmarks,
                   icon: const Icon(Icons.bookmarks_outlined),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   iconSize: 21,
                   onPressed: _editAppearance,
-                  tooltip: 'Apariencia de lectura',
+                  tooltip: _l10n.readerAppearance,
                   icon: const Icon(Icons.text_fields),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   iconSize: 21,
                   onPressed: _isSearching ? null : _searchInBook,
-                  tooltip: 'Buscar en el libro',
+                  tooltip: _l10n.searchInBook,
                   icon: _isSearching
                       ? const SizedBox.square(
                           dimension: 18,
@@ -1368,7 +1361,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                       : const Icon(Icons.search),
                 ),
                 IconButton(
-                  tooltip: 'Más opciones',
+                  tooltip: _l10n.readerMore,
                   onPressed: _openReaderMenu,
                   icon: const Icon(Icons.more_vert),
                 ),
@@ -1419,7 +1412,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                   shape: const CircleBorder(),
                   child: IconButton(
                     onPressed: _toggleFullscreen,
-                    tooltip: 'Salir de pantalla completa',
+                    tooltip: _l10n.exitFullscreen,
                     icon: const Icon(Icons.fullscreen_exit),
                   ),
                 ),
@@ -1448,7 +1441,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-              label: Text(_isSavingHighlight ? 'Guardando…' : 'Elegir color'),
+              label: Text(
+                _isSavingHighlight ? _l10n.saving : _l10n.chooseColor,
+              ),
             ),
     );
   }
@@ -1495,10 +1490,10 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         DefaultSelectionAction.copy,
         DefaultSelectionAction.share,
       },
-      selectionActions: const [
-        SelectionAction(id: 'copy', title: 'Copiar'),
-        SelectionAction(id: 'highlight', title: 'Subrayar'),
-        SelectionAction(id: 'note', title: 'Nota'),
+      selectionActions: [
+        SelectionAction(id: 'copy', title: _l10n.copy),
+        SelectionAction(id: 'highlight', title: _l10n.underlineAction),
+        SelectionAction(id: 'note', title: _l10n.addNote),
       ],
       onReaderReady: _restoreDecorations,
       onTextSelected: _rememberSelection,

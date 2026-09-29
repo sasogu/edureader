@@ -13,6 +13,7 @@ import '../../reader/data/nextcloud_sync.dart';
 import '../data/cover_extractor.dart';
 import '../data/library_storage.dart';
 import '../../reader/presentation/reader_page.dart';
+import '../../../l10n/app_localizations.dart';
 
 enum _NextcloudAction { sync, configure }
 
@@ -73,7 +74,7 @@ class _LibraryPageState extends State<LibraryPage> {
     final file = result.files.single;
     final path = file.path;
     if (path == null) {
-      _showError('No se ha podido obtener la ruta del EPUB.');
+      _showError(AppLocalizations.of(context).epubPathMissing);
       return;
     }
 
@@ -93,7 +94,7 @@ class _LibraryPageState extends State<LibraryPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _showError('No se ha podido abrir el EPUB: $error');
+      _showError(AppLocalizations.of(context).epubOpenFailed(error.toString()));
     }
   }
 
@@ -140,6 +141,7 @@ class _LibraryPageState extends State<LibraryPage> {
     EpubBook book, {
     bool showMessage = false,
   }) async {
+    final l10n = AppLocalizations.of(context);
     await _storage.removeBook(book);
     if (!mounted) return;
     setState(() {
@@ -147,11 +149,9 @@ class _LibraryPageState extends State<LibraryPage> {
       _bookTags.remove(book.id);
     });
     if (showMessage) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Este libro se eliminó desde otro dispositivo.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.remoteBookRemoved)));
     }
   }
 
@@ -196,26 +196,25 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Future<void> _deleteBook(EpubBook book) async {
+    final l10n = AppLocalizations.of(context);
     if (_isNextcloudSyncing || _autoSyncs > 0) {
-      _showError('Espera a que termine la sincronización antes de eliminar.');
+      _showError(l10n.waitForSync);
       return;
     }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar libro'),
-        content: Text(
-          '«${book.metadata.title}» se eliminará de este dispositivo y de Nextcloud. Esta acción no se puede deshacer.',
-        ),
+        title: Text(l10n.deleteBook),
+        content: Text(l10n.deleteBookConfirmation(book.metadata.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.delete_outline),
-            label: const Text('Eliminar'),
+            label: Text(l10n.deleteBook),
           ),
         ],
       ),
@@ -232,15 +231,13 @@ class _LibraryPageState extends State<LibraryPage> {
         _bookTags.remove(book.id);
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Libro eliminado de este dispositivo y Nextcloud.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.bookDeleted)));
     } catch (error) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _showError('No se pudo eliminar el libro: $error');
+      _showError(l10n.deleteBookFailed(error.toString()));
     }
   }
 
@@ -250,11 +247,16 @@ class _LibraryPageState extends State<LibraryPage> {
       if (!mounted) return;
       setState(() => _bookTags[book.id] = List.of(tags));
     } catch (error) {
-      if (mounted) _showError('No se pudieron guardar las etiquetas: $error');
+      if (mounted) {
+        _showError(
+          AppLocalizations.of(context).saveTagsFailed(error.toString()),
+        );
+      }
     }
   }
 
   Future<bool> _configureNextcloud() async {
+    final l10n = AppLocalizations.of(context);
     final existing = await _nextcloud.loadConnection();
     if (!mounted) return false;
     final serverController = TextEditingController(
@@ -272,7 +274,7 @@ class _LibraryPageState extends State<LibraryPage> {
           context: context,
           builder: (dialogContext) => StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(
-              title: const Text('Conectar con Nextcloud'),
+              title: Text(l10n.nextcloudConnect),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -281,39 +283,37 @@ class _LibraryPageState extends State<LibraryPage> {
                       controller: serverController,
                       keyboardType: TextInputType.url,
                       autocorrect: false,
-                      decoration: const InputDecoration(
-                        labelText: 'URL de Nextcloud',
-                        hintText: 'https://nube.ejemplo.com',
+                      decoration: InputDecoration(
+                        labelText: l10n.nextcloudUrl,
+                        hintText: l10n.nextcloudUrlHint,
                       ),
                     ),
                     TextField(
                       controller: usernameController,
                       autocorrect: false,
-                      decoration: const InputDecoration(labelText: 'Usuario'),
+                      decoration: InputDecoration(labelText: l10n.username),
                     ),
                     TextField(
                       controller: passwordController,
                       obscureText: true,
                       autocorrect: false,
                       decoration: InputDecoration(
-                        labelText: 'Contraseña de aplicación',
+                        labelText: l10n.appPassword,
                         helperText: existing?.appPassword.isNotEmpty == true
-                            ? 'Déjala vacía para conservar la guardada.'
-                            : 'Créala desde Seguridad en Nextcloud.',
+                            ? l10n.keepPassword
+                            : l10n.createPassword,
                         errorText: validationError,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'La contraseña se guarda cifrada en el almacenamiento seguro del dispositivo.',
-                    ),
+                    Text(l10n.secureStorage),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancelar'),
+                  child: Text(l10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () {
@@ -328,23 +328,20 @@ class _LibraryPageState extends State<LibraryPage> {
                         uri.hasFragment ||
                         uri.userInfo.isNotEmpty) {
                       setDialogState(
-                        () => validationError =
-                            'Usa una URL segura que empiece por https://.',
+                        () => validationError = l10n.httpsRequired,
                       );
                       return;
                     }
                     if (username.isEmpty) {
                       setDialogState(
-                        () =>
-                            validationError = 'Indica el usuario de Nextcloud.',
+                        () => validationError = l10n.usernameRequired,
                       );
                       return;
                     }
                     if (passwordController.text.isEmpty &&
                         existing?.appPassword.isNotEmpty != true) {
                       setDialogState(
-                        () => validationError =
-                            'Introduce una contraseña de aplicación.',
+                        () => validationError = l10n.passwordRequired,
                       );
                       return;
                     }
@@ -354,7 +351,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       appPassword: passwordController.text,
                     ));
                   },
-                  child: const Text('Guardar'),
+                  child: Text(l10n.save),
                 ),
               ],
             ),
@@ -372,18 +369,19 @@ class _LibraryPageState extends State<LibraryPage> {
         appPassword: configuration.appPassword,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conexión de Nextcloud guardada.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.nextcloudSaved)));
       }
       return true;
     } catch (error) {
-      if (mounted) _showError('No se pudo guardar la conexión: $error');
+      if (mounted) _showError(l10n.saveConnectionFailed(error.toString()));
       return false;
     }
   }
 
   Future<void> _syncWithNextcloud() async {
+    final l10n = AppLocalizations.of(context);
     try {
       var connection = await _nextcloud.loadConnection();
       if (connection == null || connection.appPassword.isEmpty) {
@@ -414,14 +412,14 @@ class _LibraryPageState extends State<LibraryPage> {
         _isLoading = false;
       });
       final message = result.uploadedBooks == 0 && result.downloadedBooks == 0
-          ? 'Biblioteca y lectura sincronizadas con Nextcloud.'
-          : 'Nextcloud: ${result.uploadedBooks} EPUB enviados, ${result.downloadedBooks} recibidos.';
+          ? l10n.syncNoChanges
+          : l10n.syncCounts(result.uploadedBooks, result.downloadedBooks);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (mounted) setState(() => _isLoading = false);
-      if (mounted) _showError('No se pudo sincronizar con Nextcloud: $error');
+      if (mounted) _showError(l10n.syncFailed(error.toString()));
     } finally {
       if (mounted) setState(() => _isNextcloudSyncing = false);
     }
@@ -430,6 +428,7 @@ class _LibraryPageState extends State<LibraryPage> {
   // En iPad el PopupMenuButton se cerraba solo; una hoja inferior modal
   // se mantiene abierta hasta que se elige una opción.
   Future<void> _openNextcloudMenu() async {
+    final l10n = AppLocalizations.of(context);
     final action = await showModalBottomSheet<_NextcloudAction>(
       context: context,
       useRootNavigator: true,
@@ -442,12 +441,12 @@ class _LibraryPageState extends State<LibraryPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.sync),
-              title: const Text('Sincronizar biblioteca'),
+              title: Text(l10n.syncLibrary),
               onTap: () => Navigator.pop(sheetContext, _NextcloudAction.sync),
             ),
             ListTile(
               leading: const Icon(Icons.cloud_outlined),
-              title: const Text('Configurar Nextcloud'),
+              title: Text(l10n.configureNextcloud),
               onTap: () =>
                   Navigator.pop(sheetContext, _NextcloudAction.configure),
             ),
@@ -478,12 +477,13 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Future<void> _showSettings() async {
+    final l10n = AppLocalizations.of(context);
     String? currentUrl;
     try {
       currentUrl = await _sync.getBaseUrl();
     } catch (error) {
       if (mounted) {
-        _showError('No se pudo cargar la configuración: $error');
+        _showError(l10n.loadSettingsFailed(error.toString()));
       }
       return;
     }
@@ -497,6 +497,7 @@ class _LibraryPageState extends State<LibraryPage> {
     var lineHeight = widget.settings.lineHeight;
     var pageMargins = widget.settings.pageMargins;
     var justifyText = widget.settings.justifyText;
+    var languageCode = widget.settings.languageCode;
     final configuration =
         await showCompletedDialog<
           ({
@@ -507,12 +508,13 @@ class _LibraryPageState extends State<LibraryPage> {
             double lineHeight,
             double pageMargins,
             bool justifyText,
+            String languageCode,
           })
         >(
           context: context,
           builder: (dialogContext) => StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(
-              title: const Text('Configuración'),
+              title: Text(l10n.configuration),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -524,9 +526,9 @@ class _LibraryPageState extends State<LibraryPage> {
                       keyboardType: TextInputType.url,
                       autocorrect: false,
                       decoration: InputDecoration(
-                        labelText: 'URL del servidor FreeWise',
-                        hintText: 'https://freewise.example.com',
-                        helperText: 'Incluye http:// o https://',
+                        labelText: l10n.freewiseServerUrl,
+                        hintText: l10n.freewiseUrlHint,
+                        helperText: l10n.includeScheme,
                         errorText: validationError,
                       ),
                       onChanged: (_) {
@@ -536,9 +538,37 @@ class _LibraryPageState extends State<LibraryPage> {
                       },
                     ),
                     const Divider(height: 32),
+                    DropdownButtonFormField<String>(
+                      initialValue: languageCode,
+                      decoration: InputDecoration(labelText: l10n.language),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'system',
+                          child: Text(l10n.languageSystem),
+                        ),
+                        DropdownMenuItem(
+                          value: 'es',
+                          child: Text(l10n.languageSpanish),
+                        ),
+                        DropdownMenuItem(
+                          value: 'ca',
+                          child: Text(l10n.languageCatalan),
+                        ),
+                        DropdownMenuItem(
+                          value: 'en',
+                          child: Text(l10n.languageEnglish),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() => languageCode = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Modo oscuro'),
+                      title: Text(l10n.darkMode),
                       value: darkMode,
                       onChanged: (value) => setDialogState(() {
                         darkMode = value;
@@ -547,7 +577,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Tono sepia'),
+                      title: Text(l10n.sepiaTone),
                       value: sepiaMode,
                       onChanged: (value) => setDialogState(() {
                         sepiaMode = value;
@@ -556,16 +586,14 @@ class _LibraryPageState extends State<LibraryPage> {
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Justificar texto'),
-                      subtitle: const Text(
-                        'Alinea el texto a ambos márgenes cuando el EPUB lo permita.',
-                      ),
+                      title: Text(l10n.justifyText),
+                      subtitle: Text(l10n.justifyHint),
                       value: justifyText,
                       onChanged: (value) =>
                           setDialogState(() => justifyText = value),
                     ),
                     const SizedBox(height: 8),
-                    Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
+                    Text(l10n.fontSize((fontScale * 100).round())),
                     Slider(
                       value: fontScale,
                       min: 0.8,
@@ -573,11 +601,11 @@ class _LibraryPageState extends State<LibraryPage> {
                       divisions: 17,
                       label: '${(fontScale * 100).round()}%',
                       semanticFormatterCallback: (value) =>
-                          'Tamaño de letra: ${(value * 100).round()} por ciento',
+                          l10n.fontSizeSemantics((value * 100).round()),
                       onChanged: (value) =>
                           setDialogState(() => fontScale = value),
                     ),
-                    Text('Interlineado · ${lineHeight.toStringAsFixed(1)}'),
+                    Text(l10n.lineHeight(lineHeight.toStringAsFixed(1))),
                     Slider(
                       value: lineHeight,
                       min: 1,
@@ -585,11 +613,11 @@ class _LibraryPageState extends State<LibraryPage> {
                       divisions: 10,
                       label: lineHeight.toStringAsFixed(1),
                       semanticFormatterCallback: (value) =>
-                          'Interlineado: ${value.toStringAsFixed(1)}',
+                          l10n.lineHeightSemantics(value.toStringAsFixed(1)),
                       onChanged: (value) =>
                           setDialogState(() => lineHeight = value),
                     ),
-                    Text('Márgenes · ${(pageMargins * 100).round()}%'),
+                    Text(l10n.margins((pageMargins * 100).round())),
                     Slider(
                       value: pageMargins,
                       min: 0.5,
@@ -597,7 +625,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       divisions: 15,
                       label: '${(pageMargins * 100).round()}%',
                       semanticFormatterCallback: (value) =>
-                          'Márgenes: ${(value * 100).round()} por ciento',
+                          l10n.marginsSemantics((value * 100).round()),
                       onChanged: (value) =>
                           setDialogState(() => pageMargins = value),
                     ),
@@ -607,7 +635,7 @@ class _LibraryPageState extends State<LibraryPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancelar'),
+                  child: Text(l10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () {
@@ -619,8 +647,7 @@ class _LibraryPageState extends State<LibraryPage> {
                             uri.host.isEmpty ||
                             !{'http', 'https'}.contains(uri.scheme))) {
                       setDialogState(
-                        () => validationError =
-                            'Introduce una URL válida que empiece por http:// o https://.',
+                        () => validationError = l10n.invalidFreewiseUrl,
                       );
                       return;
                     }
@@ -632,9 +659,10 @@ class _LibraryPageState extends State<LibraryPage> {
                       lineHeight: lineHeight,
                       pageMargins: pageMargins,
                       justifyText: justifyText,
+                      languageCode: languageCode,
                     ));
                   },
-                  child: const Text('Guardar'),
+                  child: Text(l10n.save),
                 ),
               ],
             ),
@@ -652,30 +680,32 @@ class _LibraryPageState extends State<LibraryPage> {
         pageMargins: configuration.pageMargins,
         justifyText: configuration.justifyText,
       );
+      await widget.settings.setLanguage(configuration.languageCode);
       final configuredUrl = configuration.url;
       if (configuredUrl != null) await _sync.setBaseUrl(configuredUrl);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Configuración guardada.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.settingsSaved)));
       }
     } catch (error) {
       if (mounted) {
-        _showError('No se pudo guardar la configuración: $error');
+        _showError(l10n.saveSettingsFailed(error.toString()));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasBooks = _books.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('EduReader'),
+        title: Text(l10n.appTitle),
         actions: [
           IconButton(
-            tooltip: 'Sincronización Nextcloud',
+            tooltip: l10n.nextcloudSync,
             onPressed: _isNextcloudSyncing ? null : _openNextcloudMenu,
             icon: _isNextcloudSyncing || _autoSyncs > 0
                 ? const SizedBox.square(
@@ -686,7 +716,7 @@ class _LibraryPageState extends State<LibraryPage> {
           ),
           IconButton(
             onPressed: _openSettings,
-            tooltip: 'Ajustes',
+            tooltip: l10n.settings,
             icon: const Icon(Icons.settings_outlined),
           ),
         ],
@@ -724,6 +754,7 @@ class _EmptyLibrary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -737,13 +768,13 @@ class _EmptyLibrary extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Tu biblioteca está vacía',
+              l10n.emptyLibraryTitle,
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'EduReader empieza centrado en EPUB, lectura cómoda y subrayados que podremos enviar a FreeWise.',
+              l10n.emptyLibraryBody,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge,
             ),
@@ -751,7 +782,7 @@ class _EmptyLibrary extends StatelessWidget {
             FilledButton.icon(
               onPressed: onPickEpub,
               icon: const Icon(Icons.file_open_outlined),
-              label: const Text('Elegir un EPUB'),
+              label: Text(l10n.chooseEpub),
             ),
           ],
         ),
@@ -801,6 +832,7 @@ class _BookListState extends State<_BookList> {
         ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
   Future<void> _editTags(EpubBook book) async {
+    final l10n = AppLocalizations.of(context);
     final tags = List<String>.of(widget.bookTags[book.id] ?? const []);
     final controller = TextEditingController();
     final updatedTags = await showDialog<List<String>>(
@@ -821,67 +853,72 @@ class _BookListState extends State<_BookList> {
           }
 
           return AlertDialog(
-            title: const Text('Etiquetas del libro'),
-            content: SizedBox(
-              width: 360,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    book.metadata.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: controller,
-                          autofocus: true,
-                          textInputAction: TextInputAction.done,
-                          decoration: const InputDecoration(
-                            labelText: 'Nueva etiqueta',
-                            border: OutlineInputBorder(),
-                          ),
-                          onSubmitted: (_) => addTag(),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Añadir etiqueta',
-                        onPressed: addTag,
-                        icon: const Icon(Icons.add),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (tags.isEmpty)
-                    const Text('Este libro todavía no tiene etiquetas.')
-                  else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
+            title: Text(l10n.tagsForBook),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 360,
+                maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      book.metadata.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
                       children: [
-                        for (final tag in tags)
-                          InputChip(
-                            label: Text(tag),
-                            onDeleted: () =>
-                                setDialogState(() => tags.remove(tag)),
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            autofocus: true,
+                            textInputAction: TextInputAction.done,
+                            decoration: InputDecoration(
+                              labelText: l10n.newTag,
+                              border: OutlineInputBorder(),
+                            ),
+                            onSubmitted: (_) => addTag(),
                           ),
+                        ),
+                        IconButton(
+                          tooltip: l10n.addTag,
+                          onPressed: addTag,
+                          icon: const Icon(Icons.add),
+                        ),
                       ],
                     ),
-                ],
+                    const SizedBox(height: 12),
+                    if (tags.isEmpty)
+                      Text(l10n.noTags)
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          for (final tag in tags)
+                            InputChip(
+                              label: Text(tag),
+                              onDeleted: () =>
+                                  setDialogState(() => tags.remove(tag)),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, tags),
-                child: const Text('Guardar'),
+                child: Text(l10n.save),
               ),
             ],
           );
@@ -925,6 +962,7 @@ class _BookListState extends State<_BookList> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final visibleBooks = _visibleBooks;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -932,23 +970,23 @@ class _BookListState extends State<_BookList> {
         Row(
           children: [
             Text(
-              'Biblioteca',
+              l10n.library,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const Spacer(),
             Semantics(
-              label: '${widget.books.length} libros en la biblioteca',
+              label: l10n.booksCount(widget.books.length),
               child: ExcludeSemantics(
-                child: Text('${widget.books.length} EPUB'),
+                child: Text(l10n.booksCount(widget.books.length)),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         TextField(
-          decoration: const InputDecoration(
-            labelText: 'Buscar en la biblioteca',
-            hintText: 'Título o autor',
+          decoration: InputDecoration(
+            labelText: l10n.searchLibrary,
+            hintText: l10n.searchTitleOrAuthor,
             prefixIcon: Icon(Icons.search),
             border: OutlineInputBorder(),
           ),
@@ -960,14 +998,14 @@ class _BookListState extends State<_BookList> {
           Row(
             children: [
               Text(
-                'Filtrar por etiquetas',
+                l10n.filterTags,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               if (_selectedTags.isNotEmpty) ...[
                 const Spacer(),
                 TextButton(
                   onPressed: () => setState(_selectedTags.clear),
-                  child: const Text('Limpiar'),
+                  child: Text(l10n.clear),
                 ),
               ],
             ],
@@ -999,7 +1037,7 @@ class _BookListState extends State<_BookList> {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                'Al elegir varias, se muestran los libros que tienen todas.',
+                l10n.multiTagFilterHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -1007,18 +1045,24 @@ class _BookListState extends State<_BookList> {
         const SizedBox(height: 8),
         DropdownButtonFormField<_LibrarySort>(
           initialValue: _sort,
-          decoration: const InputDecoration(
-            labelText: 'Ordenar por',
+          decoration: InputDecoration(
+            labelText: l10n.sortBy,
             border: OutlineInputBorder(),
             isDense: true,
           ),
-          items: const [
+          items: [
             DropdownMenuItem(
               value: _LibrarySort.recentlyAdded,
-              child: Text('Añadidos recientemente'),
+              child: Text(l10n.recentlyAdded),
             ),
-            DropdownMenuItem(value: _LibrarySort.title, child: Text('Título')),
-            DropdownMenuItem(value: _LibrarySort.author, child: Text('Autor')),
+            DropdownMenuItem(
+              value: _LibrarySort.title,
+              child: Text(l10n.sortTitle),
+            ),
+            DropdownMenuItem(
+              value: _LibrarySort.author,
+              child: Text(l10n.sortAuthor),
+            ),
           ],
           onChanged: (value) {
             if (value != null) setState(() => _sort = value);
@@ -1029,9 +1073,7 @@ class _BookListState extends State<_BookList> {
           child: visibleBooks.isEmpty
               ? Center(
                   child: Text(
-                    _query.isEmpty
-                        ? 'La biblioteca está vacía.'
-                        : 'No hay libros que coincidan con «$_query».',
+                    _query.isEmpty ? l10n.noBooks : l10n.noBooksMatch(_query),
                     textAlign: TextAlign.center,
                   ),
                 )
@@ -1065,7 +1107,7 @@ class _BookListState extends State<_BookList> {
         OutlinedButton.icon(
           onPressed: widget.onPickEpub,
           icon: const Icon(Icons.add),
-          label: const Text('Añadir otro EPUB'),
+          label: Text(l10n.addEpub),
         ),
       ],
     );
@@ -1096,7 +1138,8 @@ class _BookListState extends State<_BookList> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    book.metadata.creator ?? 'Autor desconocido',
+                    book.metadata.creator ??
+                        AppLocalizations.of(context).authorUnknown,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -1123,12 +1166,12 @@ class _BookListState extends State<_BookList> {
               ),
             ),
             IconButton(
-              tooltip: 'Editar etiquetas',
+              tooltip: AppLocalizations.of(context).editTags,
               onPressed: () => _editTags(book),
               icon: const Icon(Icons.sell_outlined),
             ),
             IconButton(
-              tooltip: 'Eliminar libro',
+              tooltip: AppLocalizations.of(context).deleteBook,
               onPressed: () => widget.onDeleteBook(book),
               icon: const Icon(Icons.delete_outline),
             ),
@@ -1162,7 +1205,7 @@ class _BookListState extends State<_BookList> {
                         ).colorScheme.surface.withValues(alpha: 0.92),
                         shape: const CircleBorder(),
                         child: IconButton(
-                          tooltip: 'Editar etiquetas',
+                          tooltip: AppLocalizations.of(context).editTags,
                           visualDensity: VisualDensity.compact,
                           onPressed: () => _editTags(book),
                           icon: const Icon(Icons.sell_outlined),
@@ -1175,7 +1218,7 @@ class _BookListState extends State<_BookList> {
                         ).colorScheme.surface.withValues(alpha: 0.92),
                         shape: const CircleBorder(),
                         child: IconButton(
-                          tooltip: 'Eliminar libro',
+                          tooltip: AppLocalizations.of(context).deleteBook,
                           visualDensity: VisualDensity.compact,
                           onPressed: () => widget.onDeleteBook(book),
                           icon: const Icon(Icons.delete_outline),
@@ -1195,7 +1238,7 @@ class _BookListState extends State<_BookList> {
             style: Theme.of(context).textTheme.titleSmall,
           ),
           Text(
-            book.metadata.creator ?? 'Autor desconocido',
+            book.metadata.creator ?? AppLocalizations.of(context).authorUnknown,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

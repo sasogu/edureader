@@ -5,6 +5,12 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 
 ## Estado actual
 
+- Localización inicial de la aplicación en español, catalán e inglés: detecta
+  el idioma del dispositivo y permite elegirlo manualmente en Configuración.
+  La biblioteca, los diálogos de Nextcloud/FreeWise y los controles principales
+  del lector están traducidos. Queda pendiente revisar las traducciones en uso
+  real y completar cualquier texto que aparezca durante esa revisión. Los
+  materiales de las tiendas no forman parte de este trabajo.
 - Biblioteca local e importación de EPUB.
 - La biblioteca muestra una sola acción contextual para añadir libros: elegir
   EPUB cuando está vacía y añadir otro EPUB cuando ya contiene libros. Se
@@ -103,6 +109,16 @@ Después de validar la fase inicial, mejorar resolución de conflictos y reinten
 añadir sincronización de anotaciones y preferencias. Mantener independiente la
 exportación de anotaciones a FreeWise y conservar por ahora la política segura
 de no propagar borrados.
+
+### 6. Completar la localización de la aplicación
+
+Localización inicial en español, catalán e inglés, con idioma automático según
+el dispositivo y selección manual. Se han traducido la biblioteca, los
+diálogos de Nextcloud y FreeWise, y las pantallas de índice, búsqueda,
+marcadores, subrayados, notas y lectura en voz alta. Siguiente etapa: revisión
+en dispositivos de los tres idiomas y corrección incremental de cualquier
+texto o ajuste de maquetación detectado. No traducir las fichas de las tiendas
+como parte de esta tarea.
 
 ## Notas técnicas para retomar
 

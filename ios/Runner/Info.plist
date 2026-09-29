@@ -8,6 +8,12 @@
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>es</string>
+		<string>ca</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>EduReader</string>
 	<key>CFBundleExecutable</key>

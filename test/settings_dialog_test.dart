@@ -7,7 +7,11 @@ void main() {
   testWidgets(
     'abre y cierra configuración repetidamente',
     (tester) async {
-      SharedPreferences.setMockInitialValues({});
+      tester.binding.platformDispatcher.localeTestValue = const Locale(
+        'es',
+        'ES',
+      );
+      SharedPreferences.setMockInitialValues({'app_language': 'es'});
       await tester.pumpWidget(const EduReaderApp());
       await tester.pumpAndSettle();
       for (var i = 0; i < 2; i++) {
@@ -28,7 +32,11 @@ void main() {
   testWidgets(
     'guarda la URL y permite volver a abrir configuración',
     (tester) async {
-      SharedPreferences.setMockInitialValues({});
+      tester.binding.platformDispatcher.localeTestValue = const Locale(
+        'es',
+        'ES',
+      );
+      SharedPreferences.setMockInitialValues({'app_language': 'es'});
       await tester.pumpWidget(const EduReaderApp());
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.settings_outlined));
@@ -56,4 +64,32 @@ void main() {
       TargetPlatform.android,
     }),
   );
+
+  testWidgets('detecta catalán y permite elegir inglés manualmente', (
+    tester,
+  ) async {
+    tester.binding.platformDispatcher.localeTestValue = const Locale(
+      'ca',
+      'ES',
+    );
+    SharedPreferences.setMockInitialValues({'app_language': 'ca'});
+    await tester.pumpWidget(const EduReaderApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tria un EPUB'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Configuració'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Desa'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose an EPUB'), findsOneWidget);
+    expect(find.text('Your library is empty'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

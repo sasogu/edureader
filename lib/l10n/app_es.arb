@@ -1,0 +1,418 @@
+{
+  "@@locale": "es",
+  "appTitle": "EduReader",
+  "library": "Biblioteca",
+  "booksCount": "{count} EPUB",
+  "@booksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyLibraryTitle": "Tu biblioteca está vacía",
+  "emptyLibraryBody": "EduReader empieza centrado en EPUB, lectura cómoda y subrayados que podremos enviar a FreeWise.",
+  "chooseEpub": "Elegir un EPUB",
+  "addEpub": "Añadir otro EPUB",
+  "settings": "Ajustes",
+  "nextcloudSync": "Sincronización Nextcloud",
+  "searchLibrary": "Buscar en la biblioteca",
+  "searchTitleOrAuthor": "Título o autor",
+  "filterTags": "Filtrar por etiquetas",
+  "multiTagFilterHint": "Al elegir varias, se muestran los libros que tienen todas.",
+  "clear": "Limpiar",
+  "sortBy": "Ordenar por",
+  "recentlyAdded": "Añadidos recientemente",
+  "sortTitle": "Título",
+  "sortAuthor": "Autor",
+  "noBooks": "La biblioteca está vacía.",
+  "noBooksMatch": "No hay libros que coincidan con «{query}».",
+  "@noBooksMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "editTags": "Editar etiquetas",
+  "deleteBook": "Eliminar libro",
+  "tagsForBook": "Etiquetas del libro",
+  "newTag": "Nueva etiqueta",
+  "addTag": "Añadir etiqueta",
+  "noTags": "Este libro todavía no tiene etiquetas.",
+  "cancel": "Cancelar",
+  "save": "Guardar",
+  "configuration": "Configuración",
+  "freewiseServerUrl": "URL del servidor FreeWise",
+  "freewiseUrlHint": "https://freewise.example.com",
+  "includeScheme": "Incluye http:// o https://",
+  "darkMode": "Modo oscuro",
+  "sepiaTone": "Tono sepia",
+  "justifyText": "Justificar texto",
+  "justifyHint": "Alinea el texto a ambos márgenes cuando el EPUB lo permita.",
+  "fontSize": "Tamaño de letra · {value}%",
+  "@fontSize": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "lineHeight": "Interlineado · {value}",
+  "@lineHeight": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "margins": "Márgenes · {value}%",
+  "@margins": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "fontSizeSemantics": "Tamaño de letra: {value} por ciento",
+  "@fontSizeSemantics": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "lineHeightSemantics": "Interlineado: {value}",
+  "@lineHeightSemantics": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "marginsSemantics": "Márgenes: {value} por ciento",
+  "@marginsSemantics": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "language": "Idioma",
+  "languageSystem": "Automático (idioma del dispositivo)",
+  "languageSpanish": "Español",
+  "languageCatalan": "Català",
+  "languageEnglish": "English",
+  "settingsSaved": "Configuración guardada.",
+  "nextcloudConnect": "Conectar con Nextcloud",
+  "nextcloudUrl": "URL de Nextcloud",
+  "username": "Usuario",
+  "appPassword": "Contraseña de aplicación",
+  "keepPassword": "Déjala vacía para conservar la guardada.",
+  "createPassword": "Créala desde Seguridad en Nextcloud.",
+  "secureStorage": "La contraseña se guarda cifrada en el almacenamiento seguro del dispositivo.",
+  "httpsRequired": "Usa una URL segura que empiece por https://.",
+  "usernameRequired": "Indica el usuario de Nextcloud.",
+  "passwordRequired": "Indica una contraseña de aplicación.",
+  "nextcloudSaved": "Conexión de Nextcloud guardada.",
+  "syncLibrary": "Sincronizar biblioteca",
+  "configureNextcloud": "Configurar Nextcloud",
+  "syncNoChanges": "Biblioteca y lectura sincronizadas con Nextcloud.",
+  "syncCounts": "Nextcloud: {uploaded} EPUB enviados, {downloaded} recibidos.",
+  "@syncCounts": {
+    "placeholders": {
+      "uploaded": {
+        "type": "int"
+      },
+      "downloaded": {
+        "type": "int"
+      }
+    }
+  },
+  "syncFailed": "No se pudo sincronizar con Nextcloud: {error}",
+  "@syncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerAppearance": "Apariencia de lectura",
+  "tableOfContents": "Índice del libro",
+  "tocMissing": "Este EPUB no incluye un índice.",
+  "closeToc": "Cerrar índice",
+  "sectionOpenFailed": "No se pudo abrir esa sección.",
+  "searchInBook": "Buscar en el libro",
+  "searchTerm": "Palabra o frase",
+  "search": "Buscar",
+  "searchNoResults": "No hay resultados para «{query}».",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchFailed": "No se pudo buscar en el EPUB: {error}",
+  "@searchFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchResults": "Resultados de búsqueda",
+  "searchResultsCount": "«{query}» · {count} resultados",
+  "@searchResultsCount": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "closeResults": "Cerrar resultados",
+  "chapter": "Capítulo",
+  "searchResultFailed": "No se pudo abrir ese resultado.",
+  "goToPosition": "Ir a una posición",
+  "bookProgress": "Progreso del libro: {value}%",
+  "@bookProgress": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "go": "Ir",
+  "progressFailed": "No se pudo ir a esa posición.",
+  "currentPositionUnknown": "Aún no se conoce la posición actual.",
+  "moreOptions": "Más opciones",
+  "close": "Cerrar",
+  "readAloud": "Lectura en voz alta",
+  "exportAnnotations": "Exportar anotaciones",
+  "syncFreewise": "Sincronizar con FreeWise",
+  "addBookmark": "Añadir marcador",
+  "bookmarkName": "Nombre (opcional)",
+  "bookmarkExample": "Por ejemplo, “Capítulo favorito”",
+  "bookmarkSaved": "Marcador guardado.",
+  "bookmarkSaveFailed": "No se pudo guardar el marcador: {error}",
+  "@bookmarkSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addBookmarkHere": "Añadir marcador aquí",
+  "closeBookmarks": "Cerrar marcadores",
+  "noBookmarks": "Todavía no has guardado marcadores.",
+  "deleteBookmark": "Eliminar marcador",
+  "bookmarkDeleteFailed": "No se pudo eliminar el marcador: {error}",
+  "@bookmarkDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "bookmarkOpenFailed": "No se pudo abrir ese marcador.",
+  "restoreHighlightsFailed": "No se pudieron mostrar los subrayados guardados.",
+  "highlightColorFailed": "No se pudo guardar el color del subrayado.",
+  "highlightSaveFailed": "No se pudo guardar el subrayado: {error}",
+  "@highlightSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteHighlight": "Eliminar subrayado",
+  "delete": "Eliminar",
+  "highlightDeleted": "Subrayado eliminado.",
+  "addNote": "Añadir nota",
+  "noteHint": "Escribe una nota",
+  "saveAndSync": "Guardar y sincronizar",
+  "configureFreewise": "Configurar FreeWise",
+  "freewiseUrl": "URL del servidor",
+  "noNewAnnotations": "No hay anotaciones nuevas para sincronizar.",
+  "annotationsSent": "Anotaciones enviadas a FreeWise.",
+  "annotationsExported": "{count} anotaciones exportadas a CSV.",
+  "@annotationsExported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freewiseSyncFailed": "No se pudo sincronizar con FreeWise: {error}",
+  "@freewiseSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fullscreen": "Pantalla completa",
+  "exitFullscreen": "Salir de pantalla completa",
+  "readerToc": "Índice del libro",
+  "readerBookmarks": "Marcadores",
+  "readerSearch": "Buscar en el libro",
+  "readerMore": "Más opciones",
+  "chooseColor": "Elegir color",
+  "saving": "Guardando…",
+  "previousSentence": "Frase anterior",
+  "pause": "Pausar",
+  "play": "Reproducir",
+  "nextSentence": "Frase siguiente",
+  "readingSpeed": "Velocidad de lectura",
+  "closeReadAloud": "Cerrar lectura en voz alta",
+  "speedValue": "Velocidad de lectura: {value} veces",
+  "@speedValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "highlightColorTitle": "Color del subrayado",
+  "underlineAction": "Subrayar",
+  "colorYellow": "Amarillo",
+  "colorGreen": "Verde",
+  "colorBlue": "Azul",
+  "colorPink": "Rosa",
+  "colorOrange": "Naranja",
+  "readerError": "No se ha podido abrir el EPUB con Readium: {error}",
+  "@readerError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerPathMissing": "El EPUB no tiene una ruta local disponible.",
+  "applyPreferencesFailed": "No se pudieron aplicar los ajustes: {error}",
+  "@applyPreferencesFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savePositionFailed": "No se pudo guardar la posición actual: {error}",
+  "@savePositionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteBookConfirmation": "«{title}» se eliminará de este dispositivo y de Nextcloud. Esta acción no se puede deshacer.",
+  "@deleteBookConfirmation": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteBookRemoved": "Este libro se eliminó desde otro dispositivo.",
+  "bookDeleted": "Libro eliminado de este dispositivo y Nextcloud.",
+  "apply": "Aplicar",
+  "confirmDeleteHighlight": "¿Eliminar este subrayado?",
+  "readAloudFailed": "No se pudo iniciar la lectura en voz alta: {error}",
+  "@readAloudFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readAloudSkipFailed": "No se pudo avanzar en la lectura: {error}",
+  "@readAloudSkipFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readAloudSpeedFailed": "No se pudo cambiar la velocidad: {error}",
+  "@readAloudSpeedFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "annotationsSynced": "Nuevas anotaciones sincronizadas.",
+  "automaticSyncFailed": "No se pudo sincronizar automáticamente: {error}",
+  "@automaticSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "bookmarkPoint": "Punto {value}",
+  "@bookmarkPoint": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "copy": "Copiar",
+  "authorUnknown": "Autor desconocido",
+  "epubPathMissing": "No se ha podido obtener la ruta del EPUB.",
+  "epubOpenFailed": "No se ha podido abrir el EPUB: {error}",
+  "@epubOpenFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "waitForSync": "Espera a que termine la sincronización antes de eliminar.",
+  "deleteBookFailed": "No se pudo eliminar el libro: {error}",
+  "@deleteBookFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveTagsFailed": "No se pudieron guardar las etiquetas: {error}",
+  "@saveTagsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveConnectionFailed": "No se pudo guardar la conexión: {error}",
+  "@saveConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "loadSettingsFailed": "No se pudo cargar la configuración: {error}",
+  "@loadSettingsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveSettingsFailed": "No se pudo guardar la configuración: {error}",
+  "@saveSettingsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidFreewiseUrl": "Introduce una URL válida que empiece por http:// o https://.",
+  "nextcloudUrlHint": "https://nube.ejemplo.com"
+}

@@ -1,6 +1,7 @@
 import 'package:edureader/core/settings/app_settings.dart';
 import 'package:edureader/core/widgets/completed_dialog.dart';
 import 'package:edureader/features/reader/presentation/highlight_color_dialog.dart';
+import 'package:edureader/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +14,9 @@ void main() {
     final settings = AppSettings();
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('es'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (context) {
             return TextButton(

@@ -1,4 +1,5 @@
 import 'package:edureader/features/reader/presentation/read_aloud_mini_player.dart';
+import 'package:edureader/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -6,6 +7,9 @@ void main() {
   late List<String> calls;
 
   Widget player({bool isPlaying = false, bool isBusy = false}) => MaterialApp(
+    locale: const Locale('es'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: Center(
         child: ReadAloudMiniPlayer(

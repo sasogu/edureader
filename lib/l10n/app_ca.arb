@@ -1,0 +1,418 @@
+{
+  "@@locale": "ca",
+  "appTitle": "EduReader",
+  "library": "Biblioteca",
+  "booksCount": "{count} EPUB",
+  "@booksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyLibraryTitle": "La biblioteca és buida",
+  "emptyLibraryBody": "EduReader se centra en els EPUB, una lectura còmoda i els subratllats que podrem enviar a FreeWise.",
+  "chooseEpub": "Tria un EPUB",
+  "addEpub": "Afegeix un altre EPUB",
+  "settings": "Configuració",
+  "nextcloudSync": "Sincronització amb Nextcloud",
+  "searchLibrary": "Cerca a la biblioteca",
+  "searchTitleOrAuthor": "Títol o autor",
+  "filterTags": "Filtra per etiquetes",
+  "multiTagFilterHint": "Si en tries diverses, es mostraran els llibres que les tinguin totes.",
+  "clear": "Neteja",
+  "sortBy": "Ordena per",
+  "recentlyAdded": "Afegits recentment",
+  "sortTitle": "Títol",
+  "sortAuthor": "Autor",
+  "noBooks": "La biblioteca és buida.",
+  "noBooksMatch": "No hi ha cap llibre que coincideixi amb «{query}».",
+  "@noBooksMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "editTags": "Edita les etiquetes",
+  "deleteBook": "Elimina el llibre",
+  "tagsForBook": "Etiquetes del llibre",
+  "newTag": "Etiqueta nova",
+  "addTag": "Afegeix una etiqueta",
+  "noTags": "Aquest llibre encara no té etiquetes.",
+  "cancel": "Cancel·la",
+  "save": "Desa",
+  "configuration": "Configuració",
+  "freewiseServerUrl": "URL del servidor FreeWise",
+  "freewiseUrlHint": "https://freewise.example.com",
+  "includeScheme": "Inclou http:// o https://",
+  "darkMode": "Mode fosc",
+  "sepiaTone": "To sèpia",
+  "justifyText": "Justifica el text",
+  "justifyHint": "Alinea el text als dos marges quan l’EPUB ho permeti.",
+  "fontSize": "Mida de la lletra · {value}%",
+  "@fontSize": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "lineHeight": "Interlineat · {value}",
+  "@lineHeight": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "margins": "Marges · {value}%",
+  "@margins": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "fontSizeSemantics": "Mida de la lletra: {value} per cent",
+  "@fontSizeSemantics": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "lineHeightSemantics": "Interlineat: {value}",
+  "@lineHeightSemantics": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "marginsSemantics": "Marges: {value} per cent",
+  "@marginsSemantics": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "language": "Idioma",
+  "languageSystem": "Automàtic (idioma del dispositiu)",
+  "languageSpanish": "Español",
+  "languageCatalan": "Català",
+  "languageEnglish": "English",
+  "settingsSaved": "S’ha desat la configuració.",
+  "nextcloudConnect": "Connecta amb Nextcloud",
+  "nextcloudUrl": "URL de Nextcloud",
+  "username": "Usuari",
+  "appPassword": "Contrasenya d’aplicació",
+  "keepPassword": "Deixa-la buida per conservar la que ja està desada.",
+  "createPassword": "Crea-la a l’apartat Seguretat de Nextcloud.",
+  "secureStorage": "La contrasenya es desa xifrada a l’emmagatzematge segur del dispositiu.",
+  "httpsRequired": "Fes servir una URL segura que comenci per https://.",
+  "usernameRequired": "Indica l’usuari de Nextcloud.",
+  "passwordRequired": "Indica una contrasenya d’aplicació.",
+  "nextcloudSaved": "S’ha desat la connexió amb Nextcloud.",
+  "syncLibrary": "Sincronitza la biblioteca",
+  "configureNextcloud": "Configura Nextcloud",
+  "syncNoChanges": "S’han sincronitzat la biblioteca i la lectura amb Nextcloud.",
+  "syncCounts": "Nextcloud: {uploaded} EPUB enviats, {downloaded} rebuts.",
+  "@syncCounts": {
+    "placeholders": {
+      "uploaded": {
+        "type": "int"
+      },
+      "downloaded": {
+        "type": "int"
+      }
+    }
+  },
+  "syncFailed": "No s’ha pogut sincronitzar amb Nextcloud: {error}",
+  "@syncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerAppearance": "Aparença de lectura",
+  "tableOfContents": "Índex del llibre",
+  "tocMissing": "Aquest EPUB no inclou cap índex.",
+  "closeToc": "Tanca l’índex",
+  "sectionOpenFailed": "No s’ha pogut obrir aquesta secció.",
+  "searchInBook": "Cerca al llibre",
+  "searchTerm": "Paraula o frase",
+  "search": "Cerca",
+  "searchNoResults": "No hi ha resultats per a «{query}».",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchFailed": "No s’ha pogut cercar a l’EPUB: {error}",
+  "@searchFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchResults": "Resultats de cerca",
+  "searchResultsCount": "«{query}» · {count} resultats",
+  "@searchResultsCount": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "closeResults": "Tanca els resultats",
+  "chapter": "Capítol",
+  "searchResultFailed": "No s’ha pogut obrir aquest resultat.",
+  "goToPosition": "Ves a una posició",
+  "bookProgress": "Progrés del llibre: {value}%",
+  "@bookProgress": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "go": "Ves-hi",
+  "progressFailed": "No s’ha pogut anar a aquesta posició.",
+  "currentPositionUnknown": "Encara no es coneix la posició actual.",
+  "moreOptions": "Més opcions",
+  "close": "Tanca",
+  "readAloud": "Lectura en veu alta",
+  "exportAnnotations": "Exporta les anotacions",
+  "syncFreewise": "Sincronitza amb FreeWise",
+  "addBookmark": "Afegeix un marcador",
+  "bookmarkName": "Nom (opcional)",
+  "bookmarkExample": "Per exemple, «Capítol preferit»",
+  "bookmarkSaved": "S’ha desat el marcador.",
+  "bookmarkSaveFailed": "No s’ha pogut desar el marcador: {error}",
+  "@bookmarkSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addBookmarkHere": "Afegeix un marcador aquí",
+  "closeBookmarks": "Tanca els marcadors",
+  "noBookmarks": "Encara no has desat cap marcador.",
+  "deleteBookmark": "Elimina el marcador",
+  "bookmarkDeleteFailed": "No s’ha pogut eliminar el marcador: {error}",
+  "@bookmarkDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "bookmarkOpenFailed": "No s’ha pogut obrir aquest marcador.",
+  "restoreHighlightsFailed": "No s’han pogut mostrar els subratllats desats.",
+  "highlightColorFailed": "No s’ha pogut desar el color del subratllat.",
+  "highlightSaveFailed": "No s’ha pogut desar el subratllat: {error}",
+  "@highlightSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteHighlight": "Elimina el subratllat",
+  "delete": "Elimina",
+  "highlightDeleted": "S’ha eliminat el subratllat.",
+  "addNote": "Afegeix una nota",
+  "noteHint": "Escriu una nota",
+  "saveAndSync": "Desa i sincronitza",
+  "configureFreewise": "Configura FreeWise",
+  "freewiseUrl": "URL del servidor",
+  "noNewAnnotations": "No hi ha anotacions noves per sincronitzar.",
+  "annotationsSent": "S’han enviat les anotacions a FreeWise.",
+  "annotationsExported": "S’han exportat {count} anotacions a CSV.",
+  "@annotationsExported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freewiseSyncFailed": "No s’ha pogut sincronitzar amb FreeWise: {error}",
+  "@freewiseSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fullscreen": "Pantalla completa",
+  "exitFullscreen": "Surt de la pantalla completa",
+  "previousSentence": "Frase anterior",
+  "pause": "Pausa",
+  "play": "Reprodueix",
+  "nextSentence": "Frase següent",
+  "readingSpeed": "Velocitat de lectura",
+  "closeReadAloud": "Tanca la lectura en veu alta",
+  "speedValue": "Velocitat de lectura: {value} vegades",
+  "@speedValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "highlightColorTitle": "Color del subratllat",
+  "underlineAction": "Subratlla",
+  "colorYellow": "Groc",
+  "colorGreen": "Verd",
+  "colorBlue": "Blau",
+  "colorPink": "Rosa",
+  "colorOrange": "Taronja",
+  "readerError": "No s’ha pogut obrir l’EPUB amb Readium: {error}",
+  "@readerError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerPathMissing": "L’EPUB no té cap ruta local disponible.",
+  "applyPreferencesFailed": "No s’han pogut aplicar els ajustos: {error}",
+  "@applyPreferencesFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savePositionFailed": "No s’ha pogut desar la posició actual: {error}",
+  "@savePositionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteBookConfirmation": "«{title}» s’eliminarà d’aquest dispositiu i de Nextcloud. Aquesta acció no es pot desfer.",
+  "@deleteBookConfirmation": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteBookRemoved": "Aquest llibre s’ha eliminat des d’un altre dispositiu.",
+  "bookDeleted": "S’ha eliminat el llibre d’aquest dispositiu i de Nextcloud.",
+  "apply": "Aplica",
+  "confirmDeleteHighlight": "Vols eliminar aquest subratllat?",
+  "readAloudFailed": "No s’ha pogut iniciar la lectura en veu alta: {error}",
+  "@readAloudFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readAloudSkipFailed": "No s’ha pogut avançar en la lectura: {error}",
+  "@readAloudSkipFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readAloudSpeedFailed": "No s’ha pogut canviar la velocitat: {error}",
+  "@readAloudSpeedFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "annotationsSynced": "S’han sincronitzat anotacions noves.",
+  "automaticSyncFailed": "No s’ha pogut sincronitzar automàticament: {error}",
+  "@automaticSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseColor": "Tria el color",
+  "readerBookmarks": "Marcadors",
+  "readerMore": "Més opcions",
+  "readerSearch": "Cerca al llibre",
+  "readerToc": "Índex del llibre",
+  "saving": "S’està desant…",
+  "bookmarkPoint": "Punt {value}",
+  "@bookmarkPoint": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "copy": "Copia",
+  "authorUnknown": "Autor desconegut",
+  "epubPathMissing": "No s’ha pogut obtenir la ruta de l’EPUB.",
+  "epubOpenFailed": "No s’ha pogut obrir l’EPUB: {error}",
+  "@epubOpenFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "waitForSync": "Espera que acabi la sincronització abans d’eliminar-lo.",
+  "deleteBookFailed": "No s’ha pogut eliminar el llibre: {error}",
+  "@deleteBookFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveTagsFailed": "No s’han pogut desar les etiquetes: {error}",
+  "@saveTagsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveConnectionFailed": "No s’ha pogut desar la connexió: {error}",
+  "@saveConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "loadSettingsFailed": "No s’ha pogut carregar la configuració: {error}",
+  "@loadSettingsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveSettingsFailed": "No s’ha pogut desar la configuració: {error}",
+  "@saveSettingsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidFreewiseUrl": "Introdueix una URL vàlida que comenci per http:// o https://.",
+  "nextcloudUrlHint": "https://nuv.example.cat"
+}

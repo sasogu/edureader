@@ -32,6 +32,7 @@ class AppSettings extends ChangeNotifier {
   static const _lineHeightKey = 'reader_line_height';
   static const _pageMarginsKey = 'reader_page_margins';
   static const _justifyTextKey = 'reader_justify_text';
+  static const _languageKey = 'app_language';
 
   bool _darkMode = false;
   bool _sepiaMode = false;
@@ -39,6 +40,7 @@ class AppSettings extends ChangeNotifier {
   double _lineHeight = 1.4;
   double _pageMargins = 1.0;
   bool _justifyText = false;
+  String _languageCode = 'system';
 
   bool get darkMode => _darkMode;
   bool get sepiaMode => _sepiaMode;
@@ -46,6 +48,9 @@ class AppSettings extends ChangeNotifier {
   double get lineHeight => _lineHeight;
   double get pageMargins => _pageMargins;
   bool get justifyText => _justifyText;
+  String get languageCode => _languageCode;
+  Locale? get locale =>
+      _languageCode == 'system' ? null : Locale(_languageCode);
 
   /// Fondo de la página, también para el margen que rodea al lector.
   Color get readerBackgroundColor => _darkMode
@@ -96,6 +101,18 @@ class AppSettings extends ChangeNotifier {
         .clamp(0.5, 2.0)
         .toDouble();
     _justifyText = preferences.getBool(_justifyTextKey) ?? false;
+    final savedLanguage = preferences.getString(_languageKey) ?? 'system';
+    _languageCode = const {'system', 'es', 'ca', 'en'}.contains(savedLanguage)
+        ? savedLanguage
+        : 'system';
+    notifyListeners();
+  }
+
+  Future<void> setLanguage(String languageCode) async {
+    if (!const {'system', 'es', 'ca', 'en'}.contains(languageCode)) return;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_languageKey, languageCode);
+    _languageCode = languageCode;
     notifyListeners();
   }
 
