@@ -413,6 +413,18 @@ class AppLocalizationsCa extends AppLocalizations {
   String get readerBookmarks => 'Marcadors';
 
   @override
+  String get readerBookmarksAndHighlights => 'Marcadors i subratllats';
+
+  @override
+  String get savedHighlightsTab => 'Subratllats';
+
+  @override
+  String get noSavedHighlights => 'Encara no has desat cap subratllat.';
+
+  @override
+  String get savedHighlightFallback => 'Fragment subratllat';
+
+  @override
   String get readerSearch => 'Cerca al llibre';
 
   @override

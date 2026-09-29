@@ -411,6 +411,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readerBookmarks => 'Marcadores';
 
   @override
+  String get readerBookmarksAndHighlights => 'Marcadores y subrayados';
+
+  @override
+  String get savedHighlightsTab => 'Subrayados';
+
+  @override
+  String get noSavedHighlights => 'Todavía no has guardado subrayados.';
+
+  @override
+  String get savedHighlightFallback => 'Fragmento subrayado';
+
+  @override
   String get readerSearch => 'Buscar en el libro';
 
   @override

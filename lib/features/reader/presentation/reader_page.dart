@@ -79,7 +79,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.settings.addListener(_applyReaderPreferences);
-    _readium.setDefaultPreferences(widget.settings.epubPreferences);
+    _readium.setDefaultPreferences(_readerPreferences());
     _ttsSubscription = _readium.onTimebasedPlayerStateChanged.listen(
       _handleTimebasedState,
       onError: (Object _) {},
@@ -137,7 +137,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   }
 
   void _applyReaderPreferences() {
-    final preferences = widget.settings.epubPreferences;
+    final preferences = _readerPreferences(
+      contentLanguage: _publication?.metadata.languages.firstOrNull,
+    );
     _readium.setDefaultPreferences(preferences);
     if (_publication == null) return;
 
@@ -152,6 +154,22 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     });
   }
 
+  EPUBPreferences _readerPreferences({String? contentLanguage}) {
+    final preferences = widget.settings.epubPreferences;
+    if (!widget.settings.justifyText) return preferences;
+    return preferences.copyWith(
+      hyphens: true,
+      language: contentLanguage ?? 'es',
+    );
+  }
+
+  Future<T?> _waitForReaderOverlay<T>(Future<T?> overlay) {
+    if (mounted) setState(() => _isReaderMenuOpen = true);
+    return overlay.whenComplete(() {
+      if (mounted) setState(() => _isReaderMenuOpen = false);
+    });
+  }
+
   Future<void> _editAppearance() async {
     var darkMode = widget.settings.darkMode;
     var sepiaMode = widget.settings.sepiaMode;
@@ -159,8 +177,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     var lineHeight = widget.settings.lineHeight;
     var pageMargins = widget.settings.pageMargins;
     var justifyText = widget.settings.justifyText;
-    final appearance =
-        await showDialog<
+    final appearanceRoute =
+        showDialog<
           ({
             bool darkMode,
             bool sepiaMode,
@@ -265,6 +283,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
             ),
           ),
         );
+    final appearance = await _waitForReaderOverlay(appearanceRoute);
     if (appearance == null) return;
 
     await widget.settings.updateAppearance(
@@ -288,7 +307,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       return;
     }
 
-    final selectedLink = await showModalBottomSheet<Link>(
+    final selectedLinkRoute = showModalBottomSheet<Link>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
@@ -346,6 +365,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         ),
       ),
     );
+    final selectedLink = await _waitForReaderOverlay(selectedLinkRoute);
     if (!mounted || selectedLink == null) return;
 
     final locator = publication.locatorFromLink(selectedLink);
@@ -365,7 +385,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
   Future<void> _searchInBook() async {
     final controller = TextEditingController();
-    final query = await showCompletedDialog<String>(
+    final queryRoute = showCompletedDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(_l10n.searchInBook),
@@ -389,6 +409,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         ],
       ),
     );
+    final query = await _waitForReaderOverlay(queryRoute);
     controller.dispose();
     if (!mounted || query == null) return;
     final searchKey = query.trim();
@@ -419,7 +440,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     String query,
     List<TextSearchResult> results,
   ) async {
-    await showModalBottomSheet<void>(
+    final resultsRoute = showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
@@ -499,6 +520,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         ),
       ),
     );
+    await _waitForReaderOverlay(resultsRoute);
   }
 
   Future<void> _goToSearchResult(TextSearchResult result) async {
@@ -512,7 +534,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
   Future<void> _openProgressNavigator() async {
     var selectedProgress = _readingProgress.clamp(0.0, 1.0).toDouble();
-    final progress = await showDialog<double>(
+    final progressRoute = showDialog<double>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -548,6 +570,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         ),
       ),
     );
+    final progress = await _waitForReaderOverlay(progressRoute);
     if (progress == null || !mounted) return;
 
     try {
@@ -799,7 +822,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   }
 
   Future<void> _openBookmarks() async {
-    await showModalBottomSheet<void>(
+    final bookmarksRoute = showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) {
@@ -811,100 +834,163 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                 constraints: const BoxConstraints(maxWidth: 720),
                 child: SizedBox(
                   height: MediaQuery.sizeOf(sheetContext).height * 0.7,
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _l10n.readerBookmarks,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: _l10n.addBookmarkHere,
-                              onPressed: () {
-                                Navigator.pop(sheetContext);
-                                _addBookmark();
-                              },
-                              icon: const Icon(Icons.bookmark_add_outlined),
-                            ),
-                            IconButton(
-                              tooltip: _l10n.closeBookmarks,
-                              onPressed: () => Navigator.pop(sheetContext),
-                              icon: const Icon(Icons.close),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      if (bookmarks.isEmpty)
-                        Expanded(child: Center(child: Text(_l10n.noBookmarks)))
-                      else
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: bookmarks.length,
-                            itemBuilder: (context, index) {
-                              final bookmark = bookmarks[index];
-                              final title = bookmark.label.isNotEmpty
-                                  ? bookmark.label
-                                  : bookmark.locator.title?.trim().isNotEmpty ==
-                                        true
-                                  ? bookmark.locator.title!.trim()
-                                  : _l10n.bookmarkPoint(index + 1);
-                              final progression =
-                                  bookmark.locator.locations?.progression;
-                              final subtitle = progression == null
-                                  ? bookmark.locator.href
-                                  : '${(progression * 100).round()}% del capítulo';
-                              return ListTile(
-                                leading: const Icon(Icons.bookmark_outline),
-                                title: Text(title),
-                                subtitle: Text(subtitle),
-                                onTap: () {
-                                  Navigator.pop(sheetContext);
-                                  _goToBookmark(bookmark);
-                                },
-                                trailing: IconButton(
-                                  tooltip: _l10n.deleteBookmark,
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: () async {
-                                    final messenger = ScaffoldMessenger.of(
-                                      this.context,
-                                    );
-                                    final updated = bookmarks
-                                        .where((item) => item.id != bookmark.id)
-                                        .toList();
-                                    try {
-                                      await _storage.saveBookmarks(
-                                        widget.book.id,
-                                        updated,
-                                      );
-                                      if (!mounted) return;
-                                      setState(() => _bookmarks = updated);
-                                      setSheetState(() => bookmarks = updated);
-                                    } catch (error) {
-                                      if (mounted) {
-                                        messenger.showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              _l10n.bookmarkDeleteFailed(
-                                                error.toString(),
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
+                  child: DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _l10n.readerBookmarksAndHighlights,
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
-                              );
-                            },
+                              ),
+                              IconButton(
+                                tooltip: _l10n.addBookmarkHere,
+                                onPressed: () {
+                                  Navigator.pop(sheetContext);
+                                  _addBookmark();
+                                },
+                                icon: const Icon(Icons.bookmark_add_outlined),
+                              ),
+                              IconButton(
+                                tooltip: _l10n.closeBookmarks,
+                                onPressed: () => Navigator.pop(sheetContext),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
                           ),
                         ),
-                    ],
+                        const Divider(height: 1),
+                        TabBar(
+                          tabs: [
+                            Tab(text: _l10n.readerBookmarks),
+                            Tab(text: _l10n.savedHighlightsTab),
+                          ],
+                        ),
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              if (bookmarks.isEmpty)
+                                Center(child: Text(_l10n.noBookmarks))
+                              else
+                                ListView.builder(
+                                  itemCount: bookmarks.length,
+                                  itemBuilder: (context, index) {
+                                    final bookmark = bookmarks[index];
+                                    final title = bookmark.label.isNotEmpty
+                                        ? bookmark.label
+                                        : bookmark.locator.title
+                                                  ?.trim()
+                                                  .isNotEmpty ==
+                                              true
+                                        ? bookmark.locator.title!.trim()
+                                        : _l10n.bookmarkPoint(index + 1);
+                                    final progression =
+                                        bookmark.locator.locations?.progression;
+                                    final subtitle = progression == null
+                                        ? bookmark.locator.href
+                                        : '${(progression * 100).round()}% del capítulo';
+                                    return ListTile(
+                                      leading: const Icon(
+                                        Icons.bookmark_outline,
+                                      ),
+                                      title: Text(title),
+                                      subtitle: Text(subtitle),
+                                      onTap: () {
+                                        Navigator.pop(sheetContext);
+                                        _goToBookmark(bookmark);
+                                      },
+                                      trailing: IconButton(
+                                        tooltip: _l10n.deleteBookmark,
+                                        icon: const Icon(Icons.delete_outline),
+                                        onPressed: () async {
+                                          final messenger =
+                                              ScaffoldMessenger.of(
+                                                this.context,
+                                              );
+                                          final updated = bookmarks
+                                              .where(
+                                                (item) =>
+                                                    item.id != bookmark.id,
+                                              )
+                                              .toList();
+                                          try {
+                                            await _storage.saveBookmarks(
+                                              widget.book.id,
+                                              updated,
+                                            );
+                                            if (!mounted) return;
+                                            setState(
+                                              () => _bookmarks = updated,
+                                            );
+                                            setSheetState(
+                                              () => bookmarks = updated,
+                                            );
+                                          } catch (error) {
+                                            if (mounted) {
+                                              messenger.showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    _l10n.bookmarkDeleteFailed(
+                                                      error.toString(),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                              if (_decorations.isEmpty)
+                                Center(child: Text(_l10n.noSavedHighlights))
+                              else
+                                ListView.builder(
+                                  itemCount: _decorations.length,
+                                  itemBuilder: (context, index) {
+                                    final decoration = _decorations[index];
+                                    final text =
+                                        decoration.locator.text?.highlight
+                                            ?.trim() ??
+                                        '';
+                                    final progression = decoration
+                                        .locator
+                                        .locations
+                                        ?.totalProgression;
+                                    return ListTile(
+                                      leading: const Icon(
+                                        Icons.format_underline,
+                                      ),
+                                      title: Text(
+                                        text.isEmpty
+                                            ? _l10n.savedHighlightFallback
+                                            : text,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      subtitle: Text(
+                                        progression == null
+                                            ? decoration.locator.href
+                                            : '${(progression * 100).round()}%',
+                                      ),
+                                      onTap: () {
+                                        Navigator.pop(sheetContext);
+                                        _goToHighlight(decoration);
+                                      },
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -913,6 +999,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         );
       },
     );
+    await _waitForReaderOverlay(bookmarksRoute);
   }
 
   Future<void> _goToBookmark(ReaderBookmark bookmark) async {
@@ -921,6 +1008,15 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_l10n.bookmarkOpenFailed)));
+    }
+  }
+
+  Future<void> _goToHighlight(ReaderDecoration decoration) async {
+    final navigated = await _readium.goToLocator(decoration.locator);
+    if (mounted && !navigated) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.sectionOpenFailed)));
     }
   }
 
@@ -935,8 +1031,13 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     }
 
     try {
-      _readium.setDefaultPreferences(widget.settings.epubPreferences);
+      _readium.setDefaultPreferences(_readerPreferences());
       final publication = await _readium.openPublication(path);
+      await _readium.setEPUBPreferences(
+        _readerPreferences(
+          contentLanguage: publication.metadata.languages.firstOrNull,
+        ),
+      );
       final locator = await _storage.loadLocator(widget.book.id);
       final decorations = await _storage.loadDecorations(widget.book.id);
       final bookmarks = await _storage.loadBookmarks(widget.book.id);

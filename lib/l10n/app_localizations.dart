@@ -814,6 +814,30 @@ abstract class AppLocalizations {
   /// **'Marcadores'**
   String get readerBookmarks;
 
+  /// No description provided for @readerBookmarksAndHighlights.
+  ///
+  /// In es, this message translates to:
+  /// **'Marcadores y subrayados'**
+  String get readerBookmarksAndHighlights;
+
+  /// No description provided for @savedHighlightsTab.
+  ///
+  /// In es, this message translates to:
+  /// **'Subrayados'**
+  String get savedHighlightsTab;
+
+  /// No description provided for @noSavedHighlights.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no has guardado subrayados.'**
+  String get noSavedHighlights;
+
+  /// No description provided for @savedHighlightFallback.
+  ///
+  /// In es, this message translates to:
+  /// **'Fragmento subrayado'**
+  String get savedHighlightFallback;
+
   /// No description provided for @readerSearch.
   ///
   /// In es, this message translates to:

@@ -410,6 +410,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerBookmarks => 'Bookmarks';
 
   @override
+  String get readerBookmarksAndHighlights => 'Bookmarks and highlights';
+
+  @override
+  String get savedHighlightsTab => 'Highlights';
+
+  @override
+  String get noSavedHighlights => 'You have not saved any highlights yet.';
+
+  @override
+  String get savedHighlightFallback => 'Highlighted passage';
+
+  @override
   String get readerSearch => 'Search in book';
 
   @override

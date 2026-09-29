@@ -12,6 +12,7 @@ class AppSettings extends ChangeNotifier {
   bool get highlightWithBackground => _highlightWithBackground;
 
   Future<void> setHighlightWithBackground(bool value) async {
+    await _waitForLoad();
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_highlightStyleKey, value);
     _highlightWithBackground = value;
@@ -19,6 +20,7 @@ class AppSettings extends ChangeNotifier {
   }
 
   Future<void> setHighlightColor(Color color) async {
+    await _waitForLoad();
     final preferences = await SharedPreferences.getInstance();
     await preferences.setInt(_highlightColorKey, color.toARGB32());
     _highlightColor = color;
@@ -31,6 +33,7 @@ class AppSettings extends ChangeNotifier {
   Color get underlineColor => _underlineColor;
 
   Future<void> setUnderlineColor(Color color) async {
+    await _waitForLoad();
     final preferences = await SharedPreferences.getInstance();
     await preferences.setInt(_underlineColorKey, color.toARGB32());
     _underlineColor = color;
@@ -52,6 +55,7 @@ class AppSettings extends ChangeNotifier {
   double _pageMargins = 1.0;
   bool _justifyText = false;
   String _languageCode = 'system';
+  Future<void>? _loadFuture;
 
   bool get darkMode => _darkMode;
   bool get sepiaMode => _sepiaMode;
@@ -87,11 +91,19 @@ class AppSettings extends ChangeNotifier {
         : _sepiaMode
         ? const Color(0xff493d2b)
         : const Color(0xff202124),
+    hyphens: _justifyText ? true : null,
     publisherStyles: false,
     textAlign: _justifyText ? TextAlign.justify : null,
   );
 
-  Future<void> load() async {
+  Future<void> load() => _loadFuture ??= _load();
+
+  Future<void> _waitForLoad() async {
+    final loadFuture = _loadFuture;
+    if (loadFuture != null) await loadFuture;
+  }
+
+  Future<void> _load() async {
     final preferences = await SharedPreferences.getInstance();
     _highlightColor = Color(
       preferences.getInt(_highlightColorKey) ?? 0xFFFFF176,
@@ -122,6 +134,7 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> setLanguage(String languageCode) async {
     if (!const {'system', 'es', 'ca', 'en'}.contains(languageCode)) return;
+    await _waitForLoad();
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_languageKey, languageCode);
     _languageCode = languageCode;
@@ -136,6 +149,7 @@ class AppSettings extends ChangeNotifier {
     required double pageMargins,
     bool? justifyText,
   }) async {
+    await _waitForLoad();
     final preferences = await SharedPreferences.getInstance();
     _darkMode = darkMode;
     _sepiaMode = darkMode ? false : sepiaMode;
