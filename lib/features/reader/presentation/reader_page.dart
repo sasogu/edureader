@@ -935,7 +935,17 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         _initialLocator = locator;
         _currentLocator = currentLocator;
         _readingProgress = currentLocator?.locations?.totalProgression ?? 0;
-        _decorations = decorations;
+        // Use a bottom border instead of a filled rectangle so the EPUB text
+        // remains readable with either light or dark reader colors.
+        _decorations = decorations
+            .map(
+              (decoration) => decoration.copyWith(
+                style: decoration.style.copyWith(
+                  style: DecorationStyle.underline,
+                ),
+              ),
+            )
+            .toList();
         _bookmarks = bookmarks;
         _isLoading = false;
       });
@@ -950,6 +960,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         }
       });
       _syncIfConfigured();
+      if (decorations.any((d) => d.style.style != DecorationStyle.underline)) {
+        await _storage.saveDecorations(widget.book.id, _decorations);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -1027,11 +1040,17 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
     setState(() => _isSavingHighlight = true);
 
+    final highlight = Highlight.create(
+      bookId: widget.book.id,
+      chapterIndex: _chapterIndex(locator),
+      text: text,
+      color: color,
+    );
     final decoration = ReaderDecoration(
-      id: 'highlight_${DateTime.now().microsecondsSinceEpoch}',
+      id: 'highlight_${highlight.id}',
       locator: locator,
       style: ReaderDecorationStyle(
-        style: DecorationStyle.highlight,
+        style: DecorationStyle.underline,
         tint: color,
       ),
     );
@@ -1039,14 +1058,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     try {
       await _storage.saveDecorations(widget.book.id, decorations);
       await _readium.applyDecorations('edureader', decorations);
-      await HighlightService.saveHighlight(
-        Highlight.create(
-          bookId: widget.book.id,
-          chapterIndex: _chapterIndex(locator),
-          text: text,
-          color: color,
-        ),
-      );
+      await HighlightService.saveHighlight(highlight);
       if (!mounted) return;
       setState(() {
         _decorations = decorations;
@@ -1072,8 +1084,75 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _removeDecoration(DecorationInteractionEvent event) async {
+    final matchingDecorations = _decorations.where(
+      (item) => item.id == event.decorationId,
+    );
+    final decoration = matchingDecorations.isEmpty
+        ? null
+        : matchingDecorations.first;
+    if (decoration == null) return;
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar subrayado'),
+        content: Text(
+          decoration.locator.text?.highlight ?? '¿Eliminar este subrayado?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true || !mounted) return;
+    final remaining = _decorations
+        .where((item) => item.id != event.decorationId)
+        .toList();
+    await _storage.saveDecorations(widget.book.id, remaining);
+    await _readium.applyDecorations('edureader', remaining);
+    final highlightId = event.decorationId.startsWith('highlight_')
+        ? event.decorationId.substring('highlight_'.length)
+        : null;
+    if (highlightId != null) {
+      await HighlightService.deleteHighlight(highlightId);
+    } else {
+      // Older saved decorations did not share an ID with their exported
+      // highlight record, so remove the matching legacy record by its text.
+      final text = decoration.locator.text?.highlight;
+      if (text != null) {
+        final highlights = await HighlightService.getHighlights(widget.book.id);
+        final legacyMatch = highlights.where(
+          (item) =>
+              item.text == text &&
+              item.chapterIndex == _chapterIndex(decoration.locator),
+        );
+        if (legacyMatch.isNotEmpty) {
+          await HighlightService.deleteHighlight(legacyMatch.first.id);
+        }
+      }
+    }
+    if (!mounted) return;
+    setState(() => _decorations = remaining);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Subrayado eliminado.')));
+  }
+
   Future<void> _applyHighlight(SelectionActionEvent event) {
-    return _chooseHighlight(event.locator, event.selectedText);
+    // The system context menu is the quick action: reuse the most recently
+    // chosen color without interrupting reading with the color picker.
+    return _saveHighlight(
+      event.locator,
+      event.selectedText,
+      widget.settings.highlightColor,
+    );
   }
 
   Future<void> _applyNote(SelectionActionEvent event) async {
@@ -1346,8 +1425,19 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.highlight_alt_outlined),
-              label: Text(_isSavingHighlight ? 'Guardando…' : 'Subrayar'),
+                  : Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: widget.settings.highlightColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+              label: Text(_isSavingHighlight ? 'Guardando…' : 'Elegir color'),
             ),
     );
   }
@@ -1402,6 +1492,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       onReaderReady: _restoreDecorations,
       onTextSelected: _rememberSelection,
       onSelectionAction: _handleSelectionAction,
+      onDecorationInteraction: _removeDecoration,
     );
   }
 }
