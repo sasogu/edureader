@@ -272,6 +272,8 @@
   },
   "highlightColorTitle": "Color del subratllat",
   "underlineAction": "Subratlla",
+  "underlineStyle": "Subratllat",
+  "highlightStyle": "Fons de color",
   "colorYellow": "Groc",
   "colorGreen": "Verd",
   "colorBlue": "Blau",

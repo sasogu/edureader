@@ -952,17 +952,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         _initialLocator = locator;
         _currentLocator = currentLocator;
         _readingProgress = currentLocator?.locations?.totalProgression ?? 0;
-        // Use a bottom border instead of a filled rectangle so the EPUB text
-        // remains readable with either light or dark reader colors.
-        _decorations = decorations
-            .map(
-              (decoration) => decoration.copyWith(
-                style: decoration.style.copyWith(
-                  style: DecorationStyle.underline,
-                ),
-              ),
-            )
-            .toList();
+        _decorations = decorations;
         _bookmarks = bookmarks;
         _isLoading = false;
       });
@@ -977,9 +967,6 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         }
       });
       _syncIfConfigured();
-      if (decorations.any((d) => d.style.style != DecorationStyle.underline)) {
-        await _storage.saveDecorations(widget.book.id, _decorations);
-      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -1023,15 +1010,27 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     if ((selectedText ?? locator.text?.highlight ?? '').trim().isEmpty) return;
     setState(() => _isChoosingHighlight = true);
     try {
-      final color = await showCompletedDialog<Color>(
+      final choice = await showCompletedDialog<HighlightChoice>(
         context: context,
-        builder: (_) =>
-            HighlightColorDialog(initialColor: widget.settings.highlightColor),
+        builder: (_) => HighlightColorDialog(
+          initialColor: widget.settings.highlightColor,
+          initialStyle: widget.settings.highlightWithBackground
+              ? DecorationStyle.highlight
+              : DecorationStyle.underline,
+        ),
       );
-      if (!mounted || color == null) return;
-      await widget.settings.setHighlightColor(color);
+      if (!mounted || choice == null) return;
+      await widget.settings.setHighlightColor(choice.color);
+      await widget.settings.setHighlightWithBackground(
+        choice.style == DecorationStyle.highlight,
+      );
       if (!mounted) return;
-      await _saveHighlight(locator, selectedText, color);
+      await _saveHighlight(
+        locator,
+        selectedText,
+        choice.color,
+        style: choice.style,
+      );
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -1046,8 +1045,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   Future<void> _saveHighlight(
     Locator locator,
     String? selectedText,
-    Color color,
-  ) async {
+    Color color, {
+    required DecorationStyle style,
+  }) async {
     final text = selectedText ?? locator.text?.highlight ?? '';
     if (text.trim().isEmpty || _isSavingHighlight) return;
 
@@ -1062,10 +1062,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     final decoration = ReaderDecoration(
       id: 'highlight_${highlight.id}',
       locator: locator,
-      style: ReaderDecorationStyle(
-        style: DecorationStyle.underline,
-        tint: color,
-      ),
+      style: ReaderDecorationStyle(style: style, tint: color),
     );
     final decorations = [..._decorations, decoration];
     try {
@@ -1164,8 +1161,14 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       event.locator,
       event.selectedText,
       widget.settings.highlightColor,
+      style: _selectedHighlightStyle,
     );
   }
+
+  DecorationStyle get _selectedHighlightStyle =>
+      widget.settings.highlightWithBackground
+      ? DecorationStyle.highlight
+      : DecorationStyle.underline;
 
   Future<void> _applyNote(SelectionActionEvent event) async {
     final text = event.selectedText ?? event.locator.text?.highlight ?? '';

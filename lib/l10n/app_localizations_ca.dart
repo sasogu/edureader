@@ -454,6 +454,12 @@ class AppLocalizationsCa extends AppLocalizations {
   String get underlineAction => 'Subratlla';
 
   @override
+  String get underlineStyle => 'Subratllat';
+
+  @override
+  String get highlightStyle => 'Fons de color';
+
+  @override
   String get colorYellow => 'Groc';
 
   @override

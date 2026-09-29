@@ -4,8 +4,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettings extends ChangeNotifier {
   static const _highlightColorKey = 'reader_highlight_color';
+  static const _highlightStyleKey = 'reader_highlight_style';
   Color _highlightColor = const Color(0xFFFFF176);
   Color get highlightColor => _highlightColor;
+
+  bool _highlightWithBackground = false;
+  bool get highlightWithBackground => _highlightWithBackground;
+
+  Future<void> setHighlightWithBackground(bool value) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_highlightStyleKey, value);
+    _highlightWithBackground = value;
+    notifyListeners();
+  }
 
   Future<void> setHighlightColor(Color color) async {
     final preferences = await SharedPreferences.getInstance();
@@ -85,6 +96,7 @@ class AppSettings extends ChangeNotifier {
     _highlightColor = Color(
       preferences.getInt(_highlightColorKey) ?? 0xFFFFF176,
     );
+    _highlightWithBackground = preferences.getBool(_highlightStyleKey) ?? false;
     _underlineColor = Color(
       preferences.getInt(_underlineColorKey) ?? 0xFF90CAF9,
     );

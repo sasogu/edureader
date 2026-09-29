@@ -278,6 +278,8 @@
   },
   "highlightColorTitle": "Color del subrayado",
   "underlineAction": "Subrayar",
+  "underlineStyle": "Subrayado",
+  "highlightStyle": "Fondo de color",
   "colorYellow": "Amarillo",
   "colorGreen": "Verde",
   "colorBlue": "Azul",

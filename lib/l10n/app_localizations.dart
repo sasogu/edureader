@@ -892,6 +892,18 @@ abstract class AppLocalizations {
   /// **'Subrayar'**
   String get underlineAction;
 
+  /// No description provided for @underlineStyle.
+  ///
+  /// In es, this message translates to:
+  /// **'Subrayado'**
+  String get underlineStyle;
+
+  /// No description provided for @highlightStyle.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondo de color'**
+  String get highlightStyle;
+
   /// No description provided for @colorYellow.
   ///
   /// In es, this message translates to:

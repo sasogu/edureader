@@ -452,6 +452,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get underlineAction => 'Subrayar';
 
   @override
+  String get underlineStyle => 'Subrayado';
+
+  @override
+  String get highlightStyle => 'Fondo de color';
+
+  @override
   String get colorYellow => 'Amarillo';
 
   @override

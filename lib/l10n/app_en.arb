@@ -272,6 +272,8 @@
   },
   "highlightColorTitle": "Highlight color",
   "underlineAction": "Highlight",
+  "underlineStyle": "Underline",
+  "highlightStyle": "Color background",
   "colorYellow": "Yellow",
   "colorGreen": "Green",
   "colorBlue": "Blue",

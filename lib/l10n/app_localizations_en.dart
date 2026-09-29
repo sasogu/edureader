@@ -451,6 +451,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get underlineAction => 'Highlight';
 
   @override
+  String get underlineStyle => 'Underline';
+
+  @override
+  String get highlightStyle => 'Color background';
+
+  @override
   String get colorYellow => 'Yellow';
 
   @override
