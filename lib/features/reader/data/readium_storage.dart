@@ -10,6 +10,7 @@ class ReadiumStorage {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_locatorKey(bookId));
     await preferences.remove(_decorationsKey(bookId));
+    await preferences.remove(_decorationsModifiedKey(bookId));
     await preferences.remove(_bookmarksKey(bookId));
     await preferences.remove(_stateModifiedKey(bookId));
   }
@@ -49,21 +50,57 @@ class ReadiumStorage {
     List<ReaderDecoration> decorations,
   ) async {
     final preferences = await SharedPreferences.getInstance();
+    await _writeDecorations(preferences, bookId, decorations);
     await preferences.setString(
-      _decorationsKey(bookId),
-      jsonEncode(
-        decorations.map((decoration) {
-          final value = decoration.toJson();
-          value['style'] = {
-            ...decoration.style.toJson(),
-            if (decoration.style.tint != null)
-              'tint': decoration.style.tint!.toARGB32(),
-          };
-          return value;
-        }).toList(),
-      ),
+      _decorationsModifiedKey(bookId),
+      DateTime.now().toUtc().toIso8601String(),
     );
   }
+
+  Future<DateTime> loadDecorationsModifiedAt(String bookId) async {
+    final preferences = await SharedPreferences.getInstance();
+    final value = preferences.getString(_decorationsModifiedKey(bookId));
+    return DateTime.tryParse(value ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+  }
+
+  Future<void> applyRemoteDecorations({
+    required String bookId,
+    required List<ReaderDecoration> decorations,
+    required DateTime modifiedAt,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    await _writeDecorations(preferences, bookId, decorations);
+    await preferences.setString(
+      _decorationsModifiedKey(bookId),
+      modifiedAt.toUtc().toIso8601String(),
+    );
+  }
+
+  Future<void> _writeDecorations(
+    SharedPreferences preferences,
+    String bookId,
+    List<ReaderDecoration> decorations,
+  ) => preferences.setString(
+    _decorationsKey(bookId),
+    jsonEncode(decorations.map(_decorationJson).toList()),
+  );
+
+  Map<String, dynamic> _decorationJson(ReaderDecoration decoration) {
+    final value = decoration.toJson();
+    value['style'] = {
+      ...decoration.style.toJson(),
+      if (decoration.style.tint != null)
+        'tint': decoration.style.tint!.toARGB32(),
+    };
+    return value;
+  }
+
+  ReaderDecoration decodeDecoration(Map<String, dynamic> value) =>
+      _decodeDecoration(value);
+
+  Map<String, dynamic> encodeDecoration(ReaderDecoration decoration) =>
+      _decorationJson(decoration);
 
   ReaderDecoration _decodeDecoration(Map<String, dynamic> value) {
     final style = Map<String, dynamic>.from(value['style'] as Map);
@@ -139,6 +176,9 @@ class ReadiumStorage {
   String _locatorKey(String bookId) => 'readium_locator_$bookId';
 
   String _decorationsKey(String bookId) => 'readium_decorations_$bookId';
+
+  String _decorationsModifiedKey(String bookId) =>
+      'readium_decorations_modified_$bookId';
 
   String _bookmarksKey(String bookId) => 'readium_bookmarks_$bookId';
 

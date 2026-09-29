@@ -213,7 +213,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncNoChanges =>
-      'Library and reading progress synced with Nextcloud.';
+      'Library, reading progress, and highlights synced with Nextcloud.';
 
   @override
   String syncCounts(int uploaded, int downloaded) {

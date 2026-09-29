@@ -44,4 +44,19 @@ void main() {
       expect(restored.single.toJson(), decoration.toJson());
     },
   );
+
+  test('conserva la fecha remota al restaurar subrayados', () async {
+    SharedPreferences.setMockInitialValues({});
+    final modifiedAt = DateTime.utc(2026, 9, 29, 10, 30);
+    final storage = ReadiumStorage();
+
+    await storage.applyRemoteDecorations(
+      bookId: 'book',
+      decorations: [decoration],
+      modifiedAt: modifiedAt,
+    );
+
+    expect(await storage.loadDecorations('book'), hasLength(1));
+    expect(await storage.loadDecorationsModifiedAt('book'), modifiedAt);
+  });
 }

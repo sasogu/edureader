@@ -215,7 +215,7 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get syncNoChanges =>
-      'S’han sincronitzat la biblioteca i la lectura amb Nextcloud.';
+      'S’han sincronitzat la biblioteca, la lectura i els subratllats amb Nextcloud.';
 
   @override
   String syncCounts(int uploaded, int downloaded) {

@@ -71,9 +71,11 @@ correcta. Si falla la red, el intento queda pendiente.
 La biblioteca ofrece sincronización manual con Nextcloud por WebDAV. Se
 configura el servidor HTTPS, el usuario y una contraseña de aplicación; esta
 última se guarda en el almacén seguro del sistema. EduReader sube y descarga
-los EPUB, los deduplica por SHA-256 y sincroniza el localizador de lectura y los
-marcadores, usando la última modificación cuando hay cambios en ambos
-dispositivos. Al eliminar un libro, Nextcloud conserva una marca de borrado:
+los EPUB, los deduplica por SHA-256 y sincroniza el localizador de lectura, los
+marcadores y los subrayados. El progreso y los marcadores usan la última
+modificación cuando hay cambios en ambos dispositivos; los subrayados se
+guardan en un archivo independiente por hash del EPUB y también aplican el
+cambio más reciente. Al eliminar un libro, Nextcloud conserva una marca de borrado:
 los dispositivos que aún tengan una copia la quitan en su siguiente
 sincronización y no vuelven a subirla; para ello, esos dispositivos deben usar
 esta versión de EduReader. Además, con la conexión configurada,
@@ -81,8 +83,9 @@ cada libro se sincroniza solo al abrirlo (se trae la última posición, con un m
 espera) y al cerrarlo (se publica la posición y, si falta, se sube el EPUB). También se publica la
 posición cuando la app pasa a segundo plano con un libro abierto.
 Esta sincronización automática es silenciosa: si no hay red, se sigue leyendo
-con el estado local. La sincronización de anotaciones y ajustes queda para una
-fase posterior.
+con el estado local y se sincroniza de nuevo en la próxima apertura, al añadir o
+eliminar subrayados, al cerrar el libro o al pasar la app a segundo plano. Las
+preferencias de lectura todavía no se sincronizan.
 
 La biblioteca permite filtrar por título, autor y una o varias etiquetas, y
 ordenar por incorporación, título o autor; estas operaciones solo cambian la

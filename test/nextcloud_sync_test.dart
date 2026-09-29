@@ -6,6 +6,8 @@ import 'package:crypto/crypto.dart';
 import 'package:edureader/features/reader/data/nextcloud_sync.dart';
 import 'package:edureader/features/reader/data/readium_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_readium/flutter_readium.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -241,7 +243,7 @@ void main() {
 
       await sync.deleteBook(book);
 
-      expect(methods, ['GET', 'DELETE', 'PUT']);
+      expect(methods, ['GET', 'DELETE', 'DELETE', 'PUT']);
       expect(savedManifest!['schemaVersion'], 2);
       expect(savedManifest!['books'], isEmpty);
       expect(savedManifest!['deletedBooks'][hash], isA<String>());
@@ -346,32 +348,97 @@ void main() {
       final sync = await connect(
         MockClient((request) async {
           methods.add(request.method);
-          return http.Response(
-            jsonEncode({
-              'schemaVersion': 1,
-              'books': [
-                {
-                  'sha256': hash,
-                  'title': 'Libro',
-                  'modifiedAt': remoteModifiedAt.toIso8601String(),
-                  'locator': null,
-                  'bookmarks': [],
-                },
-              ],
-            }),
-            200,
-          );
+          if (request.url.path.endsWith('library-v1.json')) {
+            return http.Response(
+              jsonEncode({
+                'schemaVersion': 1,
+                'books': [
+                  {
+                    'sha256': hash,
+                    'title': 'Libro',
+                    'modifiedAt': remoteModifiedAt.toIso8601String(),
+                    'locator': null,
+                    'bookmarks': [],
+                  },
+                ],
+              }),
+              200,
+            );
+          }
+          return http.Response('', 404);
         }),
       );
 
       await sync.syncBook(book);
 
-      expect(methods, ['GET']);
+      expect(methods, ['GET', 'GET']);
       expect(
         await ReadiumStorage().loadStateModifiedAt(book.id),
         remoteModifiedAt,
       );
     });
+
+    test(
+      'restores cloud highlights for the same EPUB at a new local path',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final decoration = ReaderDecoration(
+          id: 'highlight-cloud-test',
+          locator: Locator.fromJson({
+            'href': 'text/ch001.xhtml',
+            'type': 'application/xhtml+xml',
+            'text': {'highlight': 'Texto recuperado'},
+            'locations': {'progression': 0.25},
+          })!,
+          style: const ReaderDecorationStyle(
+            style: DecorationStyle.underline,
+            tint: Color(0xFFFFF176),
+          ),
+        );
+        final storage = ReadiumStorage();
+        await storage.saveDecorations(book.id, [decoration]);
+        String? remoteManifest;
+        String? remoteDecorations;
+        final sync = await connect(
+          MockClient((request) async {
+            final path = request.url.path;
+            if (request.method == 'GET' && path.endsWith('library-v1.json')) {
+              return remoteManifest == null
+                  ? http.Response('', 404)
+                  : http.Response(remoteManifest!, 200);
+            }
+            if (request.method == 'GET' && path.endsWith('$hash.json')) {
+              return remoteDecorations == null
+                  ? http.Response('', 404)
+                  : http.Response(remoteDecorations!, 200);
+            }
+            if (request.method == 'MKCOL') return http.Response('', 201);
+            if (request.method == 'PUT' && path.endsWith('.epub')) {
+              return http.Response('', 201);
+            }
+            if (request.method == 'PUT' && path.endsWith('$hash.json')) {
+              remoteDecorations = request.body;
+              return http.Response('', 201);
+            }
+            if (request.method == 'PUT' && path.endsWith('library-v1.json')) {
+              remoteManifest = request.body;
+              return http.Response('', 201);
+            }
+            return http.Response('', 404);
+          }),
+        );
+
+        await sync.syncBook(book);
+        expect(jsonDecode(remoteDecorations!)['decorations'], hasLength(1));
+
+        final reimportedBook = book.copyWith(id: 'new-device-local-path');
+        await sync.syncBook(reimportedBook);
+        final restored = await storage.loadDecorations(reimportedBook.id);
+        expect(restored, hasLength(1));
+        expect(restored.single.locator.text?.highlight, 'Texto recuperado');
+        expect(restored.single.style.tint, decoration.style.tint);
+      },
+    );
 
     test('ignores the remote state once the sync was cancelled', () async {
       final methods = <String>[];
@@ -481,6 +548,7 @@ void main() {
               ? http.Response('', 404)
               : http.Response(manifest!, 200);
         }
+        if (request.method == 'GET') return http.Response('', 404);
         if (request.method == 'PUT' && name == 'library-v1.json') {
           manifest = request.body;
           return http.Response('', 201);

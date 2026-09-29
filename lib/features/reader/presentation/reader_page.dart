@@ -27,6 +27,7 @@ class ReaderPage extends StatefulWidget {
     required this.book,
     required this.settings,
     this.onAppBackground,
+    this.onBookStateChanged,
     super.key,
   });
 
@@ -36,6 +37,7 @@ class ReaderPage extends StatefulWidget {
   /// Se llama cuando la app pasa a segundo plano con el libro abierto, después
   /// de guardar la posición actual.
   final Future<void> Function()? onAppBackground;
+  final Future<void> Function()? onBookStateChanged;
 
   @override
   State<ReaderPage> createState() => _ReaderPageState();
@@ -1070,6 +1072,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       await _storage.saveDecorations(widget.book.id, decorations);
       await _readium.applyDecorations('edureader', decorations);
       await HighlightService.saveHighlight(highlight);
+      unawaited(widget.onBookStateChanged?.call());
       if (!mounted) return;
       setState(() {
         _decorations = decorations;
@@ -1146,6 +1149,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         }
       }
     }
+    unawaited(widget.onBookStateChanged?.call());
     if (!mounted) return;
     setState(() => _decorations = remaining);
     ScaffoldMessenger.of(

@@ -117,7 +117,7 @@
   "nextcloudSaved": "S’ha desat la connexió amb Nextcloud.",
   "syncLibrary": "Sincronitza la biblioteca",
   "configureNextcloud": "Configura Nextcloud",
-  "syncNoChanges": "S’han sincronitzat la biblioteca i la lectura amb Nextcloud.",
+  "syncNoChanges": "S’han sincronitzat la biblioteca, la lectura i els subratllats amb Nextcloud.",
   "syncCounts": "Nextcloud: {uploaded} EPUB enviats, {downloaded} rebuts.",
   "@syncCounts": {
     "placeholders": {

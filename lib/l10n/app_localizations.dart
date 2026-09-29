@@ -469,7 +469,7 @@ abstract class AppLocalizations {
   /// No description provided for @syncNoChanges.
   ///
   /// In es, this message translates to:
-  /// **'Biblioteca y lectura sincronizadas con Nextcloud.'**
+  /// **'Biblioteca, lectura y subrayados sincronizados con Nextcloud.'**
   String get syncNoChanges;
 
   /// No description provided for @syncCounts.

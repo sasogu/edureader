@@ -117,7 +117,7 @@
   "nextcloudSaved": "Nextcloud connection saved.",
   "syncLibrary": "Sync library",
   "configureNextcloud": "Set up Nextcloud",
-  "syncNoChanges": "Library and reading progress synced with Nextcloud.",
+  "syncNoChanges": "Library, reading progress, and highlights synced with Nextcloud.",
   "syncCounts": "Nextcloud: {uploaded} EPUB uploaded, {downloaded} received.",
   "@syncCounts": {
     "placeholders": {

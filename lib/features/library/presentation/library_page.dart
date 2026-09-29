@@ -124,6 +124,9 @@ class _LibraryPageState extends State<LibraryPage> {
           onAppBackground: () async {
             await _autoSyncBook(book);
           },
+          onBookStateChanged: () async {
+            await _autoSyncBook(book);
+          },
         ),
       ),
     );

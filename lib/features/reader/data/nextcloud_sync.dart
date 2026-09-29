@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter_readium/flutter_readium.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -68,6 +69,7 @@ class NextcloudSync {
   static const _usernameKey = 'nextcloud_username';
   static const _passwordKey = 'nextcloud_app_password';
   static const _manifestPath = 'library-v1.json';
+  static const _annotationsDirectory = 'annotations';
 
   final http.Client _client;
   final NextcloudSecretStore _secretStore;
@@ -170,6 +172,7 @@ class NextcloudSync {
       204,
       404,
     }, 'eliminar un EPUB');
+    await _deleteRemoteDecorations(connection, hash);
     manifest.books.remove(hash);
     manifest.deletedBooks[hash] = DateTime.now().toUtc();
     await _uploadManifest(connection, manifest.books, manifest.deletedBooks);
@@ -231,7 +234,14 @@ class NextcloudSync {
         downloaded++;
       }
 
-      if (await _reconcileState(book, entry)) {
+      final localStateIsNewer = await _reconcileState(book, entry);
+      await _syncDecorations(
+        connection,
+        entry.sha256,
+        book.id,
+        remoteMayExist: true,
+      );
+      if (localStateIsNewer) {
         manifest.books[entry.sha256] = await _entryFromLocal(
           book,
           entry.sha256,
@@ -244,6 +254,12 @@ class NextcloudSync {
       if (manifest.books.containsKey(item.key)) continue;
       final book = item.value;
       await _uploadBook(connection, item.key, _bookPath(book));
+      await _syncDecorations(
+        connection,
+        item.key,
+        book.id,
+        remoteMayExist: false,
+      );
       manifest.books[item.key] = await _entryFromLocal(book, item.key);
       uploaded++;
       manifestChanged = true;
@@ -296,12 +312,176 @@ class NextcloudSync {
       await _ensureCollection(connection, '');
       await _ensureCollection(connection, 'books');
       await _uploadBook(connection, hash, path);
-    } else if (!await _reconcileState(book, entry)) {
-      return true;
+      await _syncDecorations(
+        connection,
+        hash,
+        book.id,
+        remoteMayExist: false,
+        isCancelled: isCancelled,
+      );
+      if (isCancelled?.call() ?? false) return true;
+    } else {
+      final localStateIsNewer = await _reconcileState(book, entry);
+      await _syncDecorations(
+        connection,
+        hash,
+        book.id,
+        remoteMayExist: true,
+        isCancelled: isCancelled,
+      );
+      if (isCancelled?.call() ?? false) return true;
+      if (!localStateIsNewer) return true;
     }
     manifest.books[hash] = await _entryFromLocal(book, hash);
     await _uploadManifest(connection, manifest.books, manifest.deletedBooks);
     return true;
+  }
+
+  Future<void> _syncDecorations(
+    NextcloudConnection connection,
+    String hash,
+    String bookId, {
+    required bool remoteMayExist,
+    bool Function()? isCancelled,
+  }) async {
+    if (isCancelled?.call() ?? false) return;
+    var localDecorations = await _readium.loadDecorations(bookId);
+    var localModifiedAt = await _readium.loadDecorationsModifiedAt(bookId);
+    var localHasChanges = _hasLocalDecorationState(
+      localDecorations,
+      localModifiedAt,
+    );
+    if (!remoteMayExist && !localHasChanges) return;
+
+    final response = await _client.send(
+      http.Request(
+        'GET',
+        _davUri(connection, '$_annotationsDirectory/$hash.json'),
+      )..headers.addAll(_headers(connection)),
+    );
+    if (isCancelled?.call() ?? false) {
+      await response.stream.drain<void>();
+      return;
+    }
+    if (response.statusCode == 404) {
+      await response.stream.drain<void>();
+      localDecorations = await _readium.loadDecorations(bookId);
+      localModifiedAt = await _readium.loadDecorationsModifiedAt(bookId);
+      localHasChanges = _hasLocalDecorationState(
+        localDecorations,
+        localModifiedAt,
+      );
+      if (localHasChanges) {
+        if (localModifiedAt.millisecondsSinceEpoch == 0) {
+          localModifiedAt = DateTime.now().toUtc();
+          await _readium.applyRemoteDecorations(
+            bookId: bookId,
+            decorations: localDecorations,
+            modifiedAt: localModifiedAt,
+          );
+        }
+        await _uploadDecorations(
+          connection,
+          hash,
+          localDecorations,
+          localModifiedAt,
+        );
+      }
+      return;
+    }
+    if (response.statusCode != 200) {
+      await response.stream.drain<void>();
+      throw StateError(
+        'No se pudieron leer los subrayados de Nextcloud '
+        '(HTTP ${response.statusCode}).',
+      );
+    }
+
+    final remote =
+        jsonDecode(utf8.decode(await response.stream.toBytes()))
+            as Map<String, dynamic>;
+    if (remote['schemaVersion'] != 1 ||
+        remote['sha256'] != hash ||
+        remote['decorations'] is! List) {
+      throw const FormatException(
+        'El archivo remoto de subrayados no es compatible.',
+      );
+    }
+    final remoteModifiedAt = DateTime.parse(remote['updatedAt'] as String);
+    final remoteDecorations = (remote['decorations'] as List<dynamic>)
+        .map(
+          (item) =>
+              _readium.decodeDecoration(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+    localDecorations = await _readium.loadDecorations(bookId);
+    localModifiedAt = await _readium.loadDecorationsModifiedAt(bookId);
+
+    if (remoteModifiedAt.isAfter(localModifiedAt)) {
+      await _readium.applyRemoteDecorations(
+        bookId: bookId,
+        decorations: remoteDecorations,
+        modifiedAt: remoteModifiedAt,
+      );
+    } else if (localModifiedAt.isAfter(remoteModifiedAt)) {
+      await _uploadDecorations(
+        connection,
+        hash,
+        localDecorations,
+        localModifiedAt,
+      );
+    }
+  }
+
+  bool _hasLocalDecorationState(
+    List<ReaderDecoration> decorations,
+    DateTime modifiedAt,
+  ) => modifiedAt.millisecondsSinceEpoch > 0 || decorations.isNotEmpty;
+
+  Future<void> _uploadDecorations(
+    NextcloudConnection connection,
+    String hash,
+    List<ReaderDecoration> decorations,
+    DateTime modifiedAt,
+  ) async {
+    await _ensureCollection(connection, _annotationsDirectory);
+    final body = jsonEncode({
+      'schemaVersion': 1,
+      'sha256': hash,
+      'updatedAt': modifiedAt.toUtc().toIso8601String(),
+      'decorations': decorations.map(_readium.encodeDecoration).toList(),
+    });
+    final response = await _client.send(
+      http.Request(
+          'PUT',
+          _davUri(connection, '$_annotationsDirectory/$hash.json'),
+        )
+        ..headers.addAll(_headers(connection))
+        ..headers['Content-Type'] = 'application/json; charset=utf-8'
+        ..body = body
+        ..followRedirects = false,
+    );
+    await _requireStatus(response, const {200, 201, 204}, 'guardar subrayados');
+  }
+
+  Future<void> _deleteRemoteDecorations(
+    NextcloudConnection connection,
+    String hash,
+  ) async {
+    final response = await _client.send(
+      http.Request(
+          'DELETE',
+          _davUri(connection, '$_annotationsDirectory/$hash.json'),
+        )
+        ..headers.addAll(_headers(connection))
+        ..followRedirects = false,
+    );
+    await _requireStatus(response, const {
+      200,
+      202,
+      204,
+      404,
+    }, 'eliminar subrayados');
   }
 
   /// Aplica el estado remoto si es más reciente. Devuelve true cuando el

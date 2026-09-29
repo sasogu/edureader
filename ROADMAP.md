@@ -31,7 +31,7 @@ mejoras útiles para la lectura y registra el estado conocido de la aplicación.
 - Controles iniciales de lectura en voz alta con Readium: reproducción/pausa,
   salto de frase y velocidad ajustable.
 - Sincronización manual Nextcloud/WebDAV implementada: EPUB por SHA-256,
-  localizador y marcadores; contraseña de aplicación en almacenamiento seguro.
+  localizador, marcadores y subrayados; contraseña en almacenamiento seguro.
 - Verificación de código tras la sincronización: `flutter analyze` limpio y
   `flutter test` con 9 pruebas aprobadas, incluida subida WebDAV y persistencia
   del localizador.
@@ -105,10 +105,11 @@ abrir la app para confirmar que la biblioteca permanece intacta.
 
 ### 5. Ampliar sincronización entre dispositivos
 
-Después de validar la fase inicial, mejorar resolución de conflictos y reintentos;
-añadir sincronización de anotaciones y preferencias. Mantener independiente la
-exportación de anotaciones a FreeWise y conservar por ahora la política segura
-de no propagar borrados.
+Sincronización de subrayados añadida como sidecar por hash del EPUB, sin cambiar
+el formato del manifiesto existente. La última modificación gana entre
+dispositivos; falta validar el recorrido con Nextcloud real y mejorar la
+resolución de conflictos concurrentes y los reintentos. Queda pendiente
+sincronizar preferencias. La exportación a FreeWise sigue independiente.
 
 ### 6. Completar la localización de la aplicación
 
