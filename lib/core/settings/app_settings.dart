@@ -87,7 +87,7 @@ class AppSettings extends ChangeNotifier {
     _sepiaMode = preferences.getBool(_sepiaModeKey) ?? false;
     if (_darkMode) _sepiaMode = false;
     _fontScale = (preferences.getDouble(_fontScaleKey) ?? 1.0)
-        .clamp(0.8, 1.8)
+        .clamp(0.8, 2.5)
         .toDouble();
     _lineHeight = (preferences.getDouble(_lineHeightKey) ?? 1.4)
         .clamp(1.0, 2.0)
@@ -110,7 +110,7 @@ class AppSettings extends ChangeNotifier {
     final preferences = await SharedPreferences.getInstance();
     _darkMode = darkMode;
     _sepiaMode = darkMode ? false : sepiaMode;
-    _fontScale = fontScale.clamp(0.8, 1.8).toDouble();
+    _fontScale = fontScale.clamp(0.8, 2.5).toDouble();
     _lineHeight = lineHeight.clamp(1.0, 2.0).toDouble();
     _pageMargins = pageMargins.clamp(0.5, 2.0).toDouble();
     if (justifyText != null) _justifyText = justifyText;

@@ -206,8 +206,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                   Slider(
                     value: fontScale,
                     min: 0.8,
-                    max: 1.8,
-                    divisions: 10,
+                    max: 2.5,
+                    divisions: 17,
                     label: '${(fontScale * 100).round()}%',
                     semanticFormatterCallback: (value) =>
                         'Tamaño de letra: ${(value * 100).round()} por ciento',
