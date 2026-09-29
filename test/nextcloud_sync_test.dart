@@ -5,6 +5,10 @@ import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:crypto/crypto.dart';
 import 'package:edureader/features/reader/data/nextcloud_sync.dart';
 import 'package:edureader/features/reader/data/readium_storage.dart';
+import 'package:edureader/features/reader/data/annotation_storage.dart';
+import 'package:edureader/features/reader/data/freewise_exporter.dart';
+import 'package:edureader/features/library/data/library_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_readium/flutter_readium.dart';
@@ -21,6 +25,16 @@ class _MemorySecretStore implements NextcloudSecretStore {
   @override
   Future<void> write(String key, String value) async {
     values[key] = value;
+  }
+}
+
+class _ImportedLibrary extends LibraryStorage {
+  _ImportedLibrary(this.book);
+  final EpubBook book;
+  @override
+  Future<EpubBook> importBook(String sourcePath) async {
+    await File(sourcePath).copy(book.filePath!);
+    return book;
   }
 }
 
@@ -379,7 +393,7 @@ void main() {
     });
 
     test(
-      'restores cloud highlights for the same EPUB at a new local path',
+      'fresh library download restores highlights, notes and export records',
       () async {
         SharedPreferences.setMockInitialValues({});
         final decoration = ReaderDecoration(
@@ -397,46 +411,120 @@ void main() {
         );
         final storage = ReadiumStorage();
         await storage.saveDecorations(book.id, [decoration]);
+        final annotations = AnnotationStorage();
+        await annotations.saveHighlight(
+          Highlight.create(
+            bookId: book.id,
+            chapterIndex: 0,
+            text: 'Texto recuperado',
+            color: Colors.yellow,
+          ),
+        );
+        await annotations.saveNote(
+          Note.create(
+            bookId: book.id,
+            chapterIndex: 0,
+            selectedText: 'Texto recuperado',
+            content: 'Mi nota recuperada',
+          ),
+        );
         String? remoteManifest;
         String? remoteDecorations;
-        final sync = await connect(
-          MockClient((request) async {
-            final path = request.url.path;
-            if (request.method == 'GET' && path.endsWith('library-v1.json')) {
-              return remoteManifest == null
-                  ? http.Response('', 404)
-                  : http.Response(remoteManifest!, 200);
-            }
-            if (request.method == 'GET' && path.endsWith('$hash.json')) {
-              return remoteDecorations == null
-                  ? http.Response('', 404)
-                  : http.Response(remoteDecorations!, 200);
-            }
-            if (request.method == 'MKCOL') return http.Response('', 201);
-            if (request.method == 'PUT' && path.endsWith('.epub')) {
-              return http.Response('', 201);
-            }
-            if (request.method == 'PUT' && path.endsWith('$hash.json')) {
-              remoteDecorations = request.body;
-              return http.Response('', 201);
-            }
-            if (request.method == 'PUT' && path.endsWith('library-v1.json')) {
-              remoteManifest = request.body;
-              return http.Response('', 201);
-            }
-            return http.Response('', 404);
-          }),
-        );
-
+        final client = MockClient((request) async {
+          final path = request.url.path;
+          if (request.method == 'GET' && path.endsWith('library-v1.json')) {
+            return remoteManifest == null
+                ? http.Response('', 404)
+                : http.Response(remoteManifest!, 200);
+          }
+          if (request.method == 'GET' && path.endsWith('$hash.json')) {
+            return remoteDecorations == null
+                ? http.Response('', 404)
+                : http.Response(remoteDecorations!, 200);
+          }
+          if (request.method == 'GET' && path.endsWith('.epub')) {
+            return http.Response.bytes(
+              await File(book.filePath!).readAsBytes(),
+              200,
+            );
+          }
+          if (request.method == 'MKCOL') return http.Response('', 201);
+          if (request.method == 'PUT' && path.endsWith('.epub')) {
+            return http.Response('', 201);
+          }
+          if (request.method == 'PUT' && path.endsWith('$hash.json')) {
+            remoteDecorations = request.body;
+            return http.Response('', 201);
+          }
+          if (request.method == 'PUT' && path.endsWith('library-v1.json')) {
+            remoteManifest = request.body;
+            return http.Response('', 201);
+          }
+          return http.Response('', 404);
+        });
+        final sync = await connect(client);
         await sync.syncBook(book);
         expect(jsonDecode(remoteDecorations!)['decorations'], hasLength(1));
+        expect(jsonDecode(remoteDecorations!)['notes'], hasLength(1));
+        expect(jsonDecode(remoteDecorations!)['highlights'], hasLength(1));
+        expect(remoteDecorations, isNot(contains(book.id)));
 
-        final reimportedBook = book.copyWith(id: 'new-device-local-path');
-        await sync.syncBook(reimportedBook);
+        // Una instalación vacía descarga el EPUB y lo importa con otra ruta.
+        SharedPreferences.setMockInitialValues({});
+        const channel = MethodChannel('plugins.flutter.io/path_provider');
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (_) async => directory.path);
+        addTearDown(
+          () => TestDefaultBinaryMessengerBinding
+              .instance
+              .defaultBinaryMessenger
+              .setMockMethodCallHandler(channel, null),
+        );
+        final newPath = '${directory.path}/new-device.epub';
+        final reimportedBook = book.copyWith(id: newPath, filePath: newPath);
+        final freshSync = NextcloudSync(
+          client: client,
+          secretStore: _MemorySecretStore(),
+          libraryStorage: _ImportedLibrary(reimportedBook),
+        );
+        await freshSync.saveConnection(
+          serverUrl: 'https://cloud.example.org',
+          username: 'reader',
+          appPassword: 'secret',
+        );
+        final result = await freshSync.syncLibrary([]);
+        expect(result.downloadedBooks, 1);
+        final restoredNotes = await annotations.loadNotes(reimportedBook.id);
+        expect(restoredNotes.single.content, 'Mi nota recuperada');
+        expect(restoredNotes.single.bookId, newPath);
+        expect(await annotations.loadHighlights(newPath), hasLength(1));
+        final csv = await FreeWiseExporter().buildCsv(reimportedBook);
+        expect(csv, contains('Mi nota recuperada'));
+        expect(csv, contains('Texto recuperado'));
+        await freshSync.syncLibrary([reimportedBook]);
+        expect(await annotations.loadNotes(newPath), hasLength(1));
         final restored = await storage.loadDecorations(reimportedBook.id);
         expect(restored, hasLength(1));
         expect(restored.single.locator.text?.highlight, 'Texto recuperado');
         expect(restored.single.style.tint, decoration.style.tint);
+
+        // Una nota nueva debe subirse aunque no cambien los subrayados.
+        final extra = Note.create(
+          bookId: newPath,
+          chapterIndex: 0,
+          selectedText: 'Otro fragmento',
+          content: 'Nota sin subrayado',
+        );
+        await annotations.saveNote(extra);
+        await freshSync.syncBook(reimportedBook);
+        expect(jsonDecode(remoteDecorations!)['notes'], hasLength(2));
+        final localTimestamp = await storage.loadDecorationsModifiedAt(newPath);
+        expect(
+          DateTime.parse(jsonDecode(remoteDecorations!)['updatedAt']),
+          localTimestamp,
+        );
+        await freshSync.syncBook(reimportedBook);
+        expect(await annotations.loadNotes(newPath), hasLength(2));
       },
     );
 

@@ -4,6 +4,10 @@ import 'dart:typed_data';
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+
+import 'annotation_storage.dart';
+import 'readium_storage.dart';
 
 class FreeWiseExporter {
   Future<Uint8List?> buildCsvBytes(EpubBook book, {DateTime? since}) async {
@@ -36,8 +40,38 @@ class FreeWiseExporter {
     EpubBook book, {
     DateTime? since,
   }) async {
-    final highlights = await HighlightService.getHighlights(book.id);
-    final allNotes = await NoteService.getNotes(book.id);
+    final highlights = await AnnotationStorage().loadHighlights(book.id);
+    // Las copias antiguas de Nextcloud solo contienen las marcas de Readium.
+    final storage = ReadiumStorage();
+    final decorations = await storage.loadDecorations(book.id);
+    final modifiedAt = await storage.loadDecorationsModifiedAt(book.id);
+    for (final decoration in decorations) {
+      final text = decoration.locator.text?.highlight ?? '';
+      if (text.isEmpty ||
+          highlights.any(
+            (item) =>
+                'highlight_${item.id}' == decoration.id || item.text == text,
+          )) {
+        continue;
+      }
+      final index = book.chapters.indexWhere(
+        (chapter) =>
+            decoration.locator.href.endsWith(chapter.filePath) ||
+            chapter.filePath.endsWith(decoration.locator.href),
+      );
+      highlights.add(
+        Highlight(
+          id: decoration.id,
+          bookId: book.id,
+          chapterIndex: index < 0 ? 0 : index,
+          text: text,
+          color: decoration.style.tint ?? const Color(0xFFFFF176),
+          createdAt: modifiedAt,
+          modifiedAt: modifiedAt,
+        ),
+      );
+    }
+    final allNotes = await AnnotationStorage().loadNotes(book.id);
     final notes = since == null
         ? allNotes
         : allNotes.where((note) => note.createdAt.isAfter(since)).toList();

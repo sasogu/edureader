@@ -594,4 +594,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nextcloudUrlHint => 'https://cloud.example.com';
+
+  @override
+  String get savedNotesTab => 'Notes';
+
+  @override
+  String get noSavedNotes => 'You have not saved any notes yet.';
 }

@@ -21,13 +21,14 @@ void main() {
           builder: (context) {
             return TextButton(
               onPressed: () async {
-                final color = await showCompletedDialog<Color>(
+                final choice = await showCompletedDialog<HighlightChoice>(
                   context: context,
                   builder: (_) => HighlightColorDialog(
                     initialColor: settings.highlightColor,
                   ),
                 );
-                if (color != null) await settings.setHighlightColor(color);
+                if (choice != null)
+                  await settings.setHighlightColor(choice.color);
               },
               child: const Text('Elegir'),
             );

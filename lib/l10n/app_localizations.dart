@@ -1119,6 +1119,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'https://nube.ejemplo.com'**
   String get nextcloudUrlHint;
+
+  /// No description provided for @savedNotesTab.
+  ///
+  /// In es, this message translates to:
+  /// **'Notas'**
+  String get savedNotesTab;
+
+  /// No description provided for @noSavedNotes.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no has guardado notas.'**
+  String get noSavedNotes;
 }
 
 class _AppLocalizationsDelegate

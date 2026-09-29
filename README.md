@@ -72,10 +72,15 @@ La biblioteca ofrece sincronización manual con Nextcloud por WebDAV. Se
 configura el servidor HTTPS, el usuario y una contraseña de aplicación; esta
 última se guarda en el almacén seguro del sistema. EduReader sube y descarga
 los EPUB, los deduplica por SHA-256 y sincroniza el localizador de lectura, los
-marcadores y los subrayados. El progreso y los marcadores usan la última
+marcadores, los subrayados y las notas. El progreso y los marcadores usan la última
 modificación cuando hay cambios en ambos dispositivos; los subrayados se
 guardan en un archivo independiente por hash del EPUB y también aplican el
-cambio más reciente. Al eliminar un libro, Nextcloud conserva una marca de borrado:
+cambio más reciente. Ese archivo incluye los registros de exportación y las notas,
+que se fusionan por identificador y fecha de modificación. El panel de marcadores
+permite consultar también las notas del libro. Para trasladar notas guardadas por
+versiones anteriores, primero se debe actualizar y sincronizar el dispositivo que
+las conserva; las copias antiguas que solo contienen marcas visuales siguen siendo
+compatibles. Al eliminar un libro, Nextcloud conserva una marca de borrado:
 los dispositivos que aún tengan una copia la quitan en su siguiente
 sincronización y no vuelven a subirla; para ello, esos dispositivos deben usar
 esta versión de EduReader. Además, con la conexión configurada,

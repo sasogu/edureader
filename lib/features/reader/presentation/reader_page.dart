@@ -8,6 +8,7 @@ import 'package:flutter_readium/flutter_readium.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/widgets/completed_dialog.dart';
 import '../data/freewise_exporter.dart';
+import '../data/annotation_storage.dart';
 import '../data/freewise_sync.dart';
 import '../data/reader_bookmark.dart';
 import '../data/readium_storage.dart';
@@ -65,7 +66,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   bool _isChoosingHighlight = false;
   bool _isSearching = false;
   bool _isFullscreen = false;
-  bool _isReaderMenuOpen = false;
+  int _readerOverlayCount = 0;
+  bool get _isReaderMenuOpen => _readerOverlayCount > 0;
   bool _ttsEnabled = false;
   bool _isTtsPlaying = false;
   bool _isTtsBusy = false;
@@ -164,10 +166,35 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   }
 
   Future<T?> _waitForReaderOverlay<T>(Future<T?> overlay) {
-    if (mounted) setState(() => _isReaderMenuOpen = true);
+    if (mounted) setState(() => _readerOverlayCount++);
     return overlay.whenComplete(() {
-      if (mounted) setState(() => _isReaderMenuOpen = false);
+      if (mounted) setState(() => _readerOverlayCount--);
     });
+  }
+
+  // Espera también a que desaparezca la ruta antes de devolver los toques
+  // a la vista nativa del EPUB. Los paneles se cierran con sus propios botones.
+  Future<T?> _showReaderSheet<T>({
+    required WidgetBuilder builder,
+    bool isScrollControlled = true,
+    BoxConstraints? constraints,
+  }) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final route = ModalBottomSheetRoute<T>(
+      builder: builder,
+      capturedThemes: InheritedTheme.capture(
+        from: context,
+        to: navigator.context,
+      ),
+      isScrollControlled: isScrollControlled,
+      useSafeArea: true,
+      isDismissible: false,
+      enableDrag: false,
+      constraints: constraints,
+    );
+    final result = await navigator.push(route);
+    await route.completed;
+    return result;
   }
 
   Future<void> _editAppearance() async {
@@ -178,7 +205,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     var pageMargins = widget.settings.pageMargins;
     var justifyText = widget.settings.justifyText;
     final appearanceRoute =
-        showDialog<
+        showCompletedDialog<
           ({
             bool darkMode,
             bool sepiaMode,
@@ -307,9 +334,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       return;
     }
 
-    final selectedLinkRoute = showModalBottomSheet<Link>(
-      context: context,
-      isScrollControlled: true,
+    final selectedLinkRoute = _showReaderSheet<Link>(
       builder: (sheetContext) => SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -440,9 +465,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     String query,
     List<TextSearchResult> results,
   ) async {
-    final resultsRoute = showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
+    final resultsRoute = _showReaderSheet<void>(
       builder: (sheetContext) => SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -534,7 +557,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
   Future<void> _openProgressNavigator() async {
     var selectedProgress = _readingProgress.clamp(0.0, 1.0).toDouble();
-    final progressRoute = showDialog<double>(
+    final progressRoute = showCompletedDialog<double>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -697,14 +720,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
   Future<void> _openReaderMenu() async {
     if (_isReaderMenuOpen) return;
-    setState(() => _isReaderMenuOpen = true);
-    try {
-      final action = await showModalBottomSheet<_ReaderMenuAction>(
-        context: context,
-        useRootNavigator: true,
-        useSafeArea: true,
-        isDismissible: false,
-        enableDrag: false,
+    final action = await _waitForReaderOverlay(
+      _showReaderSheet<_ReaderMenuAction>(
+        isScrollControlled: false,
         constraints: const BoxConstraints(maxWidth: 560),
         builder: (sheetContext) => Column(
           mainAxisSize: MainAxisSize.min,
@@ -746,11 +764,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
             ),
           ],
         ),
-      );
-      if (action != null && mounted) _handleMenuAction(action);
-    } finally {
-      if (mounted) setState(() => _isReaderMenuOpen = false);
-    }
+      ),
+    );
+    if (action != null && mounted) _handleMenuAction(action);
   }
 
   Iterable<(Link, int)> _flattenContents(
@@ -822,9 +838,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   }
 
   Future<void> _openBookmarks() async {
-    final bookmarksRoute = showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
+    final notes = await AnnotationStorage().loadNotes(widget.book.id);
+    if (!mounted) return;
+    final bookmarksRoute = _showReaderSheet<void>(
       builder: (sheetContext) {
         var bookmarks = List<ReaderBookmark>.of(_bookmarks);
         return StatefulBuilder(
@@ -835,7 +851,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                 child: SizedBox(
                   height: MediaQuery.sizeOf(sheetContext).height * 0.7,
                   child: DefaultTabController(
-                    length: 2,
+                    length: 3,
                     child: Column(
                       children: [
                         Padding(
@@ -869,6 +885,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                           tabs: [
                             Tab(text: _l10n.readerBookmarks),
                             Tab(text: _l10n.savedHighlightsTab),
+                            Tab(text: _l10n.savedNotesTab),
                           ],
                         ),
                         Expanded(
@@ -985,6 +1002,17 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                                       },
                                     );
                                   },
+                                ),
+                              if (notes.isEmpty)
+                                Center(child: Text(_l10n.noSavedNotes))
+                              else
+                                ListView.builder(
+                                  itemCount: notes.length,
+                                  itemBuilder: (context, index) => ListTile(
+                                    leading: const Icon(Icons.note_outlined),
+                                    title: Text(notes[index].content),
+                                    subtitle: Text(notes[index].selectedText),
+                                  ),
                                 ),
                             ],
                           ),
@@ -1169,7 +1197,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     try {
       await _storage.saveDecorations(widget.book.id, decorations);
       await _readium.applyDecorations('edureader', decorations);
-      await HighlightService.saveHighlight(highlight);
+      await AnnotationStorage().saveHighlight(highlight);
       unawaited(widget.onBookStateChanged?.call());
       if (!mounted) return;
       setState(() {
@@ -1230,20 +1258,25 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         ? event.decorationId.substring('highlight_'.length)
         : null;
     if (highlightId != null) {
-      await HighlightService.deleteHighlight(highlightId);
+      await AnnotationStorage().deleteHighlight(widget.book.id, highlightId);
     } else {
       // Older saved decorations did not share an ID with their exported
       // highlight record, so remove the matching legacy record by its text.
       final text = decoration.locator.text?.highlight;
       if (text != null) {
-        final highlights = await HighlightService.getHighlights(widget.book.id);
+        final highlights = await AnnotationStorage().loadHighlights(
+          widget.book.id,
+        );
         final legacyMatch = highlights.where(
           (item) =>
               item.text == text &&
               item.chapterIndex == _chapterIndex(decoration.locator),
         );
         if (legacyMatch.isNotEmpty) {
-          await HighlightService.deleteHighlight(legacyMatch.first.id);
+          await AnnotationStorage().deleteHighlight(
+            widget.book.id,
+            legacyMatch.first.id,
+          );
         }
       }
     }
@@ -1301,7 +1334,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     controller.dispose();
     if (note == null || note.trim().isEmpty) return;
 
-    await NoteService.saveNote(
+    await AnnotationStorage().saveNote(
       Note.create(
         bookId: widget.book.id,
         chapterIndex: _chapterIndex(event.locator),
@@ -1309,6 +1342,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         content: note.trim(),
       ),
     );
+    unawaited(widget.onBookStateChanged?.call());
   }
 
   Future<void> _handleSelectionAction(SelectionActionEvent event) async {

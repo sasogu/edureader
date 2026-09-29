@@ -22,6 +22,19 @@ void main() {
   );
 
   test(
+    'does not turn corrupt annotations into an empty sync snapshot',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'readium_decorations_book': '{invalid json',
+      });
+      await expectLater(
+        ReadiumStorage().loadDecorations('book'),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
     'recupera subrayados existentes guardados con color hexadecimal',
     () async {
       SharedPreferences.setMockInitialValues({

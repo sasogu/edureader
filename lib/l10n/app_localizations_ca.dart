@@ -600,4 +600,10 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get nextcloudUrlHint => 'https://nuv.example.cat';
+
+  @override
+  String get savedNotesTab => 'Notes';
+
+  @override
+  String get noSavedNotes => 'Encara no has desat cap nota.';
 }

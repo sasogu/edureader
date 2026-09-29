@@ -35,14 +35,12 @@ class ReadiumStorage {
     final value = preferences.getString(_decorationsKey(bookId));
     if (value == null) return [];
 
-    try {
-      final items = jsonDecode(value) as List<dynamic>;
-      return items
-          .map((item) => _decodeDecoration(item as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    // Un error de lectura no equivale a haber eliminado los subrayados:
+    // propagarlo evita publicar una colección vacía sobre la copia remota.
+    final items = jsonDecode(value) as List<dynamic>;
+    return items
+        .map((item) => _decodeDecoration(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> saveDecorations(

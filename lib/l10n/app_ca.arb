@@ -420,5 +420,7 @@
     }
   },
   "invalidFreewiseUrl": "Introdueix una URL vàlida que comenci per http:// o https://.",
-  "nextcloudUrlHint": "https://nuv.example.cat"
+  "nextcloudUrlHint": "https://nuv.example.cat",
+  "savedNotesTab": "Notes",
+  "noSavedNotes": "Encara no has desat cap nota."
 }

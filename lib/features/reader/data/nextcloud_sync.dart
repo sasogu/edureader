@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../library/data/library_storage.dart';
+import 'annotation_storage.dart';
 import 'readium_storage.dart';
 
 class NextcloudConnection {
@@ -71,6 +72,7 @@ class NextcloudSync {
   static const _manifestPath = 'library-v1.json';
   static const _annotationsDirectory = 'annotations';
 
+  final AnnotationStorage _annotations = AnnotationStorage();
   final http.Client _client;
   final NextcloudSecretStore _secretStore;
   final LibraryStorage _library;
@@ -274,7 +276,7 @@ class NextcloudSync {
     );
   }
 
-  /// Sincroniza solo la posición y los marcadores de un libro. Con
+  /// Sincroniza la posición, los marcadores, los subrayados y las notas de un libro. Con
   /// [uploadIfMissing] también sube el EPUB si todavía no está en Nextcloud.
   /// Si [isCancelled] devuelve true cuando llega el índice remoto, no se toca
   /// nada: sirve para descartar una sincronización que llegó tarde, cuando el
@@ -351,6 +353,10 @@ class NextcloudSync {
       localDecorations,
       localModifiedAt,
     );
+    final localNotes = await _annotations.loadNotes(bookId);
+    final localHighlights = await _annotations.loadHighlights(bookId);
+    localHasChanges =
+        localHasChanges || localNotes.isNotEmpty || localHighlights.isNotEmpty;
     if (!remoteMayExist && !localHasChanges) return;
 
     final response = await _client.send(
@@ -371,6 +377,10 @@ class NextcloudSync {
         localDecorations,
         localModifiedAt,
       );
+      localHasChanges =
+          localHasChanges ||
+          (await _annotations.loadNotes(bookId)).isNotEmpty ||
+          (await _annotations.loadHighlights(bookId)).isNotEmpty;
       if (localHasChanges) {
         if (localModifiedAt.millisecondsSinceEpoch == 0) {
           localModifiedAt = DateTime.now().toUtc();
@@ -385,6 +395,7 @@ class NextcloudSync {
           hash,
           localDecorations,
           localModifiedAt,
+          bookId,
         );
       }
       return;
@@ -414,21 +425,58 @@ class NextcloudSync {
               _readium.decodeDecoration(Map<String, dynamic>.from(item as Map)),
         )
         .toList();
+    final remoteNotes = (remote['notes'] as List? ?? const [])
+        .map(
+          (item) => Note.fromJson({
+            ...Map<String, dynamic>.from(item as Map),
+            'bookId': bookId,
+          }),
+        )
+        .toList();
+    final remoteHighlights = (remote['highlights'] as List?)
+        ?.map(
+          (item) => Highlight.fromJson({
+            ...Map<String, dynamic>.from(item as Map),
+            'bookId': bookId,
+          }),
+        )
+        .toList();
+    if (isCancelled?.call() ?? false) return;
+    await _annotations.mergeNotes(bookId, remoteNotes);
+    final mergedNotes = await _annotations.loadNotes(bookId);
+    final notesNeedUpload = mergedNotes.any(
+      (note) => !remoteNotes.any(
+        (remoteNote) =>
+            remoteNote.id == note.id &&
+            !note.modifiedAt.isAfter(remoteNote.modifiedAt),
+      ),
+    );
     localDecorations = await _readium.loadDecorations(bookId);
     localModifiedAt = await _readium.loadDecorationsModifiedAt(bookId);
 
+    if (!localModifiedAt.isAfter(remoteModifiedAt) &&
+        remoteHighlights != null) {
+      await _annotations.replaceHighlights(bookId, remoteHighlights);
+    }
     if (remoteModifiedAt.isAfter(localModifiedAt)) {
       await _readium.applyRemoteDecorations(
         bookId: bookId,
         decorations: remoteDecorations,
         modifiedAt: remoteModifiedAt,
       );
-    } else if (localModifiedAt.isAfter(remoteModifiedAt)) {
+      localDecorations = remoteDecorations;
+      localModifiedAt = remoteModifiedAt;
+    }
+    if (localModifiedAt.isAfter(remoteModifiedAt) ||
+        notesNeedUpload ||
+        (remoteHighlights == null &&
+            (await _annotations.loadHighlights(bookId)).isNotEmpty)) {
       await _uploadDecorations(
         connection,
         hash,
         localDecorations,
         localModifiedAt,
+        bookId,
       );
     }
   }
@@ -443,6 +491,7 @@ class NextcloudSync {
     String hash,
     List<ReaderDecoration> decorations,
     DateTime modifiedAt,
+    String bookId,
   ) async {
     await _ensureCollection(connection, _annotationsDirectory);
     final body = jsonEncode({
@@ -450,6 +499,12 @@ class NextcloudSync {
       'sha256': hash,
       'updatedAt': modifiedAt.toUtc().toIso8601String(),
       'decorations': decorations.map(_readium.encodeDecoration).toList(),
+      'highlights': (await _annotations.loadHighlights(
+        bookId,
+      )).map((item) => item.toJson()..remove('bookId')).toList(),
+      'notes': (await _annotations.loadNotes(
+        bookId,
+      )).map((item) => item.toJson()..remove('bookId')).toList(),
     });
     final response = await _client.send(
       http.Request(

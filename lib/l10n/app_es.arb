@@ -420,5 +420,7 @@
     }
   },
   "invalidFreewiseUrl": "Introduce una URL válida que empiece por http:// o https://.",
-  "nextcloudUrlHint": "https://nube.ejemplo.com"
+  "nextcloudUrlHint": "https://nube.ejemplo.com",
+  "savedNotesTab": "Notas",
+  "noSavedNotes": "Todavía no has guardado notas."
 }
