@@ -31,18 +31,21 @@ class AppSettings extends ChangeNotifier {
   static const _fontScaleKey = 'reader_font_scale';
   static const _lineHeightKey = 'reader_line_height';
   static const _pageMarginsKey = 'reader_page_margins';
+  static const _justifyTextKey = 'reader_justify_text';
 
   bool _darkMode = false;
   bool _sepiaMode = false;
   double _fontScale = 1.0;
   double _lineHeight = 1.4;
   double _pageMargins = 1.0;
+  bool _justifyText = false;
 
   bool get darkMode => _darkMode;
   bool get sepiaMode => _sepiaMode;
   double get fontScale => _fontScale;
   double get lineHeight => _lineHeight;
   double get pageMargins => _pageMargins;
+  bool get justifyText => _justifyText;
 
   /// Fondo de la página, también para el margen que rodea al lector.
   Color get readerBackgroundColor => _darkMode
@@ -69,6 +72,7 @@ class AppSettings extends ChangeNotifier {
         ? const Color(0xff493d2b)
         : const Color(0xff202124),
     publisherStyles: false,
+    textAlign: _justifyText ? TextAlign.justify : null,
   );
 
   Future<void> load() async {
@@ -91,6 +95,7 @@ class AppSettings extends ChangeNotifier {
     _pageMargins = (preferences.getDouble(_pageMarginsKey) ?? 1.0)
         .clamp(0.5, 2.0)
         .toDouble();
+    _justifyText = preferences.getBool(_justifyTextKey) ?? false;
     notifyListeners();
   }
 
@@ -100,6 +105,7 @@ class AppSettings extends ChangeNotifier {
     required double fontScale,
     required double lineHeight,
     required double pageMargins,
+    bool? justifyText,
   }) async {
     final preferences = await SharedPreferences.getInstance();
     _darkMode = darkMode;
@@ -107,12 +113,14 @@ class AppSettings extends ChangeNotifier {
     _fontScale = fontScale.clamp(0.8, 1.8).toDouble();
     _lineHeight = lineHeight.clamp(1.0, 2.0).toDouble();
     _pageMargins = pageMargins.clamp(0.5, 2.0).toDouble();
+    if (justifyText != null) _justifyText = justifyText;
     await Future.wait([
       preferences.setBool(_darkModeKey, _darkMode),
       preferences.setBool(_sepiaModeKey, _sepiaMode),
       preferences.setDouble(_fontScaleKey, _fontScale),
       preferences.setDouble(_lineHeightKey, _lineHeight),
       preferences.setDouble(_pageMarginsKey, _pageMargins),
+      preferences.setBool(_justifyTextKey, _justifyText),
     ]);
     notifyListeners();
   }

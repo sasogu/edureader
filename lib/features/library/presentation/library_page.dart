@@ -496,6 +496,7 @@ class _LibraryPageState extends State<LibraryPage> {
     var fontScale = widget.settings.fontScale;
     var lineHeight = widget.settings.lineHeight;
     var pageMargins = widget.settings.pageMargins;
+    var justifyText = widget.settings.justifyText;
     final configuration =
         await showCompletedDialog<
           ({
@@ -505,6 +506,7 @@ class _LibraryPageState extends State<LibraryPage> {
             double fontScale,
             double lineHeight,
             double pageMargins,
+            bool justifyText,
           })
         >(
           context: context,
@@ -551,6 +553,16 @@ class _LibraryPageState extends State<LibraryPage> {
                         sepiaMode = value;
                         if (value) darkMode = false;
                       }),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Justificar texto'),
+                      subtitle: const Text(
+                        'Alinea el texto a ambos márgenes cuando el EPUB lo permita.',
+                      ),
+                      value: justifyText,
+                      onChanged: (value) =>
+                          setDialogState(() => justifyText = value),
                     ),
                     const SizedBox(height: 8),
                     Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
@@ -619,6 +631,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       fontScale: fontScale,
                       lineHeight: lineHeight,
                       pageMargins: pageMargins,
+                      justifyText: justifyText,
                     ));
                   },
                   child: const Text('Guardar'),
@@ -637,6 +650,7 @@ class _LibraryPageState extends State<LibraryPage> {
         fontScale: configuration.fontScale,
         lineHeight: configuration.lineHeight,
         pageMargins: configuration.pageMargins,
+        justifyText: configuration.justifyText,
       );
       final configuredUrl = configuration.url;
       if (configuredUrl != null) await _sync.setBaseUrl(configuredUrl);

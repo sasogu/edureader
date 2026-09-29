@@ -153,6 +153,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     var fontScale = widget.settings.fontScale;
     var lineHeight = widget.settings.lineHeight;
     var pageMargins = widget.settings.pageMargins;
+    var justifyText = widget.settings.justifyText;
     final appearance =
         await showDialog<
           ({
@@ -161,6 +162,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
             double fontScale,
             double lineHeight,
             double pageMargins,
+            bool justifyText,
           })
         >(
           context: context,
@@ -188,6 +190,16 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                       sepiaMode = value;
                       if (value) darkMode = false;
                     }),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Justificar texto'),
+                    subtitle: const Text(
+                      'Alinea el texto a ambos márgenes cuando el EPUB lo permita.',
+                    ),
+                    value: justifyText,
+                    onChanged: (value) =>
+                        setDialogState(() => justifyText = value),
                   ),
                   const SizedBox(height: 8),
                   Text('Tamaño de letra · ${(fontScale * 100).round()}%'),
@@ -240,6 +252,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                     fontScale: fontScale,
                     lineHeight: lineHeight,
                     pageMargins: pageMargins,
+                    justifyText: justifyText,
                   )),
                   child: const Text('Aplicar'),
                 ),
@@ -255,6 +268,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       fontScale: appearance.fontScale,
       lineHeight: appearance.lineHeight,
       pageMargins: appearance.pageMargins,
+      justifyText: appearance.justifyText,
     );
   }
 
