@@ -236,6 +236,7 @@ void main() {
 
     test('publishes a tombstone when removing a book from Nextcloud', () async {
       final methods = <String>[];
+      final deletedPaths = <String>[];
       Map<String, dynamic>? savedManifest;
       final sync = await connect(
         MockClient((request) async {
@@ -246,7 +247,10 @@ void main() {
               200,
             );
           }
-          if (request.method == 'DELETE') return http.Response('', 204);
+          if (request.method == 'DELETE') {
+            deletedPaths.add(request.url.path);
+            return http.Response('', 204);
+          }
           if (request.method == 'PUT') {
             savedManifest = jsonDecode(request.body) as Map<String, dynamic>;
             return http.Response('', 204);
@@ -257,11 +261,79 @@ void main() {
 
       await sync.deleteBook(book);
 
-      expect(methods, ['GET', 'DELETE', 'DELETE', 'PUT']);
+      expect(methods, ['GET', 'DELETE', 'PUT']);
+      expect(deletedPaths.single, endsWith('books/$hash.epub'));
       expect(savedManifest!['schemaVersion'], 2);
       expect(savedManifest!['books'], isEmpty);
       expect(savedManifest!['deletedBooks'][hash], isA<String>());
     });
+
+    test(
+      'restores retained annotations when a deleted EPUB is re-imported',
+      () async {
+        final decoration = ReaderDecoration(
+          id: 'highlight-restored',
+          locator: Locator.fromJson({
+            'href': 'text/ch001.xhtml',
+            'type': 'application/xhtml+xml',
+            'text': {'highlight': 'Texto conservado'},
+            'locations': {'progression': 0.25},
+          })!,
+          style: const ReaderDecorationStyle(style: DecorationStyle.underline),
+        );
+        final note = Note.create(
+          bookId: book.id,
+          chapterIndex: 0,
+          selectedText: 'Texto conservado',
+          content: 'Nota conservada',
+        );
+        final remoteAnnotations = jsonEncode({
+          'schemaVersion': 1,
+          'sha256': hash,
+          'updatedAt': DateTime.utc(2026, 1, 2).toIso8601String(),
+          'decorations': [ReadiumStorage().encodeDecoration(decoration)],
+          'highlights': [],
+          'notes': [note.toJson()..remove('bookId')],
+        });
+        String? manifest;
+        final sync = await connect(
+          MockClient((request) async {
+            final path = request.url.path;
+            if (request.method == 'GET' && path.endsWith('library-v1.json')) {
+              return http.Response(
+                manifest ?? jsonEncode({'schemaVersion': 1, 'books': []}),
+                200,
+              );
+            }
+            if (request.method == 'GET' && path.endsWith('$hash.json')) {
+              return http.Response(remoteAnnotations, 200);
+            }
+            if (request.method == 'DELETE' && path.endsWith('.epub')) {
+              return http.Response('', 204);
+            }
+            if (request.method == 'PUT' && path.endsWith('library-v1.json')) {
+              manifest = request.body;
+              return http.Response('', 204);
+            }
+            return http.Response('', 405);
+          }),
+        );
+
+        await sync.deleteBook(book);
+        final restoredBook = book.copyWith(
+          id: '${directory.path}/reimported.epub',
+          createdAt: DateTime.now().toUtc().add(const Duration(days: 1)),
+        );
+        await sync.syncBook(restoredBook, uploadIfMissing: false);
+
+        final decorations = await ReadiumStorage().loadDecorations(
+          restoredBook.id,
+        );
+        expect(decorations.single.locator.text?.highlight, 'Texto conservado');
+        final notes = await AnnotationStorage().loadNotes(restoredBook.id);
+        expect(notes.single.content, 'Nota conservada');
+      },
+    );
 
     test('removes a stale local copy instead of uploading it again', () async {
       SharedPreferences.setMockInitialValues({
@@ -577,7 +649,7 @@ void main() {
       );
 
       await sync.syncBook(book, uploadIfMissing: false);
-      expect(requests, ['GET library-v1.json']);
+      expect(requests, ['GET library-v1.json', 'GET $hash.json']);
 
       requests.clear();
       await sync.syncBook(book);
@@ -586,6 +658,7 @@ void main() {
         'MKCOL EduReader',
         'MKCOL books',
         'PUT $hash.epub',
+        'GET $hash.json',
         'PUT library-v1.json',
       ]);
     });

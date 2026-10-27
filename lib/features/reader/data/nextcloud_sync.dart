@@ -154,7 +154,8 @@ class NextcloudSync {
   Future<NextcloudSyncResult> syncLibrary(List<EpubBook> localBooks) =>
       _serialized(() => _syncLibrary(localBooks));
 
-  /// Removes the book from the shared index and deletes its EPUB on Nextcloud.
+  /// Removes the EPUB from the shared library but keeps its annotations as a
+  /// backup, keyed by the EPUB hash, for a later re-import.
   Future<void> deleteBook(EpubBook book) =>
       _serialized(() => _deleteBook(book));
 
@@ -174,7 +175,6 @@ class NextcloudSync {
       204,
       404,
     }, 'eliminar un EPUB');
-    await _deleteRemoteDecorations(connection, hash);
     manifest.books.remove(hash);
     manifest.deletedBooks[hash] = DateTime.now().toUtc();
     await _uploadManifest(connection, manifest.books, manifest.deletedBooks);
@@ -260,7 +260,7 @@ class NextcloudSync {
         connection,
         item.key,
         book.id,
-        remoteMayExist: false,
+        remoteMayExist: true,
       );
       manifest.books[item.key] = await _entryFromLocal(book, item.key);
       uploaded++;
@@ -310,7 +310,16 @@ class NextcloudSync {
     if (deletedAt != null) manifest.deletedBooks.remove(hash);
     final entry = manifest.books[hash];
     if (entry == null) {
-      if (!uploadIfMissing) return true;
+      if (!uploadIfMissing) {
+        await _syncDecorations(
+          connection,
+          hash,
+          book.id,
+          remoteMayExist: true,
+          isCancelled: isCancelled,
+        );
+        return true;
+      }
       await _ensureCollection(connection, '');
       await _ensureCollection(connection, 'books');
       await _uploadBook(connection, hash, path);
@@ -318,7 +327,7 @@ class NextcloudSync {
         connection,
         hash,
         book.id,
-        remoteMayExist: false,
+        remoteMayExist: true,
         isCancelled: isCancelled,
       );
       if (isCancelled?.call() ?? false) return true;
@@ -517,26 +526,6 @@ class NextcloudSync {
         ..followRedirects = false,
     );
     await _requireStatus(response, const {200, 201, 204}, 'guardar subrayados');
-  }
-
-  Future<void> _deleteRemoteDecorations(
-    NextcloudConnection connection,
-    String hash,
-  ) async {
-    final response = await _client.send(
-      http.Request(
-          'DELETE',
-          _davUri(connection, '$_annotationsDirectory/$hash.json'),
-        )
-        ..headers.addAll(_headers(connection))
-        ..followRedirects = false,
-    );
-    await _requireStatus(response, const {
-      200,
-      202,
-      204,
-      404,
-    }, 'eliminar subrayados');
   }
 
   /// Aplica el estado remoto si es más reciente. Devuelve true cuando el

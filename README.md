@@ -80,16 +80,19 @@ que se fusionan por identificador y fecha de modificación. El panel de marcador
 permite consultar también las notas del libro. Para trasladar notas guardadas por
 versiones anteriores, primero se debe actualizar y sincronizar el dispositivo que
 las conserva; las copias antiguas que solo contienen marcas visuales siguen siendo
-compatibles. Al eliminar un libro, Nextcloud conserva una marca de borrado:
-los dispositivos que aún tengan una copia la quitan en su siguiente
+compatibles. Al eliminar un libro, Nextcloud conserva una marca de borrado y
+mantiene sus subrayados y notas como copia de seguridad asociada al hash del EPUB.
+Los dispositivos que aún tengan una copia del libro la quitan en su siguiente
 sincronización y no vuelven a subirla; para ello, esos dispositivos deben usar
-esta versión de EduReader. Además, con la conexión configurada,
+esta versión de EduReader. Si se vuelve a importar el mismo EPUB, las
+anotaciones se recuperan al abrirlo. Además, con la conexión configurada,
 cada libro se sincroniza solo al abrirlo (se trae la última posición, con un máximo de 5 segundos de
 espera) y al cerrarlo (se publica la posición y, si falta, se sube el EPUB). También se publica la
 posición cuando la app pasa a segundo plano con un libro abierto.
 Esta sincronización automática es silenciosa: si no hay red, se sigue leyendo
 con el estado local y se sincroniza de nuevo en la próxima apertura, al añadir o
-eliminar subrayados, al cerrar el libro o al pasar la app a segundo plano. Las
+eliminar subrayados, al guardar notas, al cerrar el libro o al pasar la app a
+segundo plano. Las
 preferencias de lectura todavía no se sincronizan.
 
 La biblioteca permite filtrar por título, autor y una o varias etiquetas, y
