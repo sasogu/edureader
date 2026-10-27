@@ -1116,8 +1116,10 @@ class _BookListState extends State<_BookList> {
     );
   }
 
-  Widget _cover(EpubBook book) =>
-      _BookCover(cover: _covers.coverFor(book.id), title: book.metadata.title);
+  Widget _cover(EpubBook book) => _BookCover(
+    cover: _covers.coverFor(book.filePath ?? book.id),
+    title: book.metadata.title,
+  );
 
   Widget _bookCard(EpubBook book) => Card(
     clipBehavior: Clip.antiAlias,

@@ -20,7 +20,10 @@ Siguiente vertical:
 1. Mejorar la sincronización incremental y el control de duplicados.
 
 La biblioteca persistida guarda una copia privada de cada EPUB dentro de la
-aplicación y registra sus rutas con `shared_preferences`. El progreso de lectura
+aplicación y registra identificadores relativos en `shared_preferences`. Al
+actualizar una instalación antigua, recupera los EPUB de la carpeta privada y
+traslada también sus posiciones, marcadores, subrayados y notas aunque iOS haya
+cambiado la ruta del contenedor. El progreso de lectura
 también se guarda por libro, capítulo y posición. El motor de lectura actual es
 `flutter_readium`, con paginación horizontal real, selección de texto y
 decoraciones persistentes. La integración queda aislada en

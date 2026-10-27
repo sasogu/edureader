@@ -27,8 +27,9 @@ void main() {
                     initialColor: settings.highlightColor,
                   ),
                 );
-                if (choice != null)
+                if (choice != null) {
                   await settings.setHighlightColor(choice.color);
+                }
               },
               child: const Text('Elegir'),
             );
