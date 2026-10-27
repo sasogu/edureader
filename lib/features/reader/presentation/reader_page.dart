@@ -74,7 +74,14 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   bool _miniPlayerAtTop = false;
   StreamSubscription<ReadiumTimebasedState>? _ttsSubscription;
   double _ttsSpeed = 1;
+  Locator? _lastTimebasedLocator;
   double _readingProgress = 0;
+  Size? _readerViewportSize;
+  Locator? _viewportRestoreAnchor;
+  Timer? _viewportRestoreTimer;
+  Timer? _viewportAnchorExpiry;
+  bool _isRestoringViewport = false;
+  int _viewportRestoreCount = 0;
 
   @override
   void initState() {
@@ -95,6 +102,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     widget.settings.removeListener(_applyReaderPreferences);
     _locatorSubscription?.cancel();
     _ttsSubscription?.cancel();
+    _viewportRestoreTimer?.cancel();
+    _viewportAnchorExpiry?.cancel();
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     _readium.closePublication();
     super.dispose();
@@ -136,6 +145,80 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     );
     if (!mounted) return;
     setState(() => _isFullscreen = enteringFullscreen);
+  }
+
+  // Al cambiar el tamaño del lector (pantalla completa, barras del sistema o
+  // rotación) Readium repagina y, a veces, la página visible se desplaza. Se
+  // guarda el locator visible antes del cambio y se vuelve a él cuando la
+  // repaginación ha terminado.
+  void _handleReaderViewportChanged(Size size) {
+    final previous = _readerViewportSize;
+    _readerViewportSize = size;
+    if (previous == null || previous == size) return;
+    if (_publication == null || _isLoading) return;
+    // Durante la lectura en voz alta el navegador TTS ya mantiene la posición.
+    if (_ttsEnabled && _isTtsPlaying) return;
+    if (_viewportRestoreAnchor == null) {
+      _viewportRestoreAnchor = _currentLocator;
+      _viewportRestoreCount = 0;
+    }
+    if (_viewportRestoreAnchor == null) return;
+    _scheduleViewportRestore();
+    // Mantiene el ancla unos instantes por si la repaginación llega en varias
+    // tandas (por ejemplo, al ocultarse también las barras del sistema).
+    _viewportAnchorExpiry?.cancel();
+    _viewportAnchorExpiry = Timer(const Duration(milliseconds: 1200), () {
+      _viewportRestoreAnchor = null;
+    });
+  }
+
+  void _scheduleViewportRestore() {
+    _viewportRestoreTimer?.cancel();
+    _viewportRestoreTimer = Timer(
+      const Duration(milliseconds: 350),
+      _restoreViewportPosition,
+    );
+  }
+
+  // La repaginación emite un locator nuevo; es la señal de que ya se puede
+  // volver a la posición guardada sin que Readium la sobrescriba después.
+  void _restoreViewportAfterReflow(Locator locator) {
+    final anchor = _viewportRestoreAnchor;
+    if (anchor == null || _isRestoringViewport) return;
+    if (_isSameReadingPosition(locator, anchor)) return;
+    _viewportRestoreTimer?.cancel();
+    _restoreViewportPosition();
+  }
+
+  bool _isSameReadingPosition(Locator first, Locator second) {
+    if (first.href != second.href) return false;
+    final firstPosition = first.locations?.position;
+    final secondPosition = second.locations?.position;
+    if (firstPosition != null && secondPosition != null) {
+      return (firstPosition - secondPosition).abs() <= 1;
+    }
+    final firstProgression = first.locations?.progression;
+    final secondProgression = second.locations?.progression;
+    if (firstProgression == null || secondProgression == null) return true;
+    return (firstProgression - secondProgression).abs() < 0.005;
+  }
+
+  Future<void> _restoreViewportPosition() async {
+    final anchor = _viewportRestoreAnchor;
+    if (anchor == null || !mounted || _isRestoringViewport) return;
+    if (_viewportRestoreCount >= 2) {
+      _viewportRestoreAnchor = null;
+      return;
+    }
+    _viewportRestoreCount++;
+    _isRestoringViewport = true;
+    try {
+      await _readium.goToLocator(anchor);
+    } catch (_) {
+      // Si la navegación falla se mantiene la posición que dejó Readium.
+    } finally {
+      _isRestoringViewport = false;
+    }
   }
 
   void _applyReaderPreferences() {
@@ -614,19 +697,33 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     }
   }
 
+  /// Vuelve a activar el seguimiento visual de la voz. Es opcional: si la
+  /// plataforma no lo admite, la reproducción debe continuar igualmente.
+  Future<void> _ensureTtsVisualSync() async {
+    try {
+      await _readium.setNarrationSyncEnabled(true);
+    } catch (_) {}
+  }
+
   Future<void> _toggleTtsPlayback() async {
     if (_isTtsBusy) return;
     setState(() => _isTtsBusy = true);
     try {
       final wasPlaying = _isTtsPlaying;
       if (wasPlaying) {
+        // Si se ha navegado a mano durante la reproducción, Readium deja de
+        // seguir la voz; al pausar se vuelve a activar para que la página
+        // quede donde se ha dejado de leer.
+        await _ensureTtsVisualSync();
         await _readium.pause();
       } else if (_ttsEnabled) {
+        await _ensureTtsVisualSync();
         await _readium.resume();
       } else {
         await _readium.ttsEnable(
           TTSPreferences(speed: ttsEngineRate(_ttsSpeed)),
         );
+        await _ensureTtsVisualSync();
         await _readium.play(null);
       }
       if (mounted) {
@@ -684,6 +781,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   }
 
   Future<void> _closeReadAloud() async {
+    final lastLocator = _lastTimebasedLocator ?? _currentLocator;
     setState(() {
       _ttsEnabled = false;
       _isTtsPlaying = false;
@@ -693,16 +791,50 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     } catch (_) {
       // Si ya estaba parado no hay nada que cerrar.
     }
+    if (lastLocator != null) {
+      _currentLocator = lastLocator;
+      _initialLocator = lastLocator;
+      _queueLocatorSave(lastLocator);
+      try {
+        // Deja la página visible en el punto donde terminó la lectura.
+        await _readium.goToLocator(lastLocator);
+      } catch (_) {
+        // Se conserva la última posición que mostró Readium.
+      }
+    }
+    _lastTimebasedLocator = null;
   }
 
-  /// Mantiene el botón de reproducir al día cuando la lectura se pausa desde
-  /// la notificación, la pantalla de bloqueo o al terminar el libro.
+  /// Mantiene el botón de reproducir al día y actualiza la posición guardada
+  /// con cada frase leída, aunque Readium no mueva la página visible.
   void _handleTimebasedState(ReadiumTimebasedState state) {
     if (!mounted || !_ttsEnabled) return;
     final playing =
         state.state == TimebasedState.playing ||
         state.state == TimebasedState.loading;
-    if (playing != _isTtsPlaying) setState(() => _isTtsPlaying = playing);
+    var needsRebuild = playing != _isTtsPlaying;
+    _isTtsPlaying = playing;
+
+    final locator = state.currentLocator;
+    if (locator != null) {
+      _lastTimebasedLocator = locator;
+      if (_currentLocator == null ||
+          !_isSameReadingPosition(_currentLocator!, locator)) {
+        _currentLocator = locator;
+        _initialLocator = locator;
+        _queueLocatorSave(locator);
+      }
+      final progression = locator.locations?.totalProgression;
+      if (progression != null) {
+        final clamped = progression.clamp(0.0, 1.0);
+        if ((clamped * 100).round() != (_readingProgress * 100).round()) {
+          _readingProgress = clamped;
+          needsRebuild = true;
+        }
+      }
+    }
+
+    if (needsRebuild) setState(() {});
   }
 
   void _handleMenuAction(_ReaderMenuAction action) {
@@ -1090,6 +1222,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         _currentLocator = locator;
         _initialLocator = locator;
         _queueLocatorSave(locator);
+        _restoreViewportAfterReflow(locator);
         final progression = locator.locations?.totalProgression;
         if (progression != null && mounted) {
           setState(() => _readingProgress = progression.clamp(0.0, 1.0));
@@ -1616,7 +1749,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
             padding: EdgeInsets.symmetric(
               vertical: widget.settings.verticalPageMargin,
             ),
-            child: child,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                _handleReaderViewportChanged(constraints.biggest);
+                return child!;
+              },
+            ),
           ),
         ),
       ),
