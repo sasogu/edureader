@@ -76,7 +76,7 @@ void main() {
     await tester.pumpWidget(const EduReaderApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Tria un EPUB'), findsOneWidget);
+    expect(find.text('Tria un EPUB o PDF'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     expect(find.text('Configuració'), findsOneWidget);
@@ -88,7 +88,7 @@ void main() {
     await tester.tap(find.text('Desa'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choose an EPUB'), findsOneWidget);
+    expect(find.text('Choose an EPUB or PDF'), findsOneWidget);
     expect(find.text('Your library is empty'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

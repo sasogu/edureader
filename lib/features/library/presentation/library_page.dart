@@ -5,6 +5,7 @@ import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../core/settings/app_settings.dart';
 import '../../../core/widgets/completed_dialog.dart';
@@ -14,7 +15,9 @@ import '../../reader/data/nextcloud_sync_status.dart';
 import '../data/cover_extractor.dart';
 import '../data/incoming_epub_service.dart';
 import '../data/library_storage.dart';
+import '../data/pdf_storage.dart';
 import '../../reader/presentation/reader_page.dart';
+import '../../reader/presentation/pdf_reader_page.dart';
 import '../../../l10n/app_localizations.dart';
 
 enum _NextcloudAction { sync, configure }
@@ -30,11 +33,13 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   final LibraryStorage _storage = LibraryStorage();
+  final PdfStorage _pdfStorage = PdfStorage();
   final FreeWiseSync _sync = FreeWiseSync();
   final NextcloudSync _nextcloud = NextcloudSync();
   final NextcloudSyncStatusStore _statusStore = NextcloudSyncStatusStore();
   final IncomingEpubService _incomingEpubs = IncomingEpubService();
   final List<EpubBook> _books = [];
+  final List<PdfDocument> _pdfs = [];
   final Map<String, List<String>> _bookTags = {};
   bool _isLoading = false;
   bool _isSettingsOpen = false;
@@ -87,6 +92,7 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Future<void> _loadLibrary() async {
     final books = await _storage.loadBooks();
+    final pdfs = await _pdfStorage.loadDocuments();
     final tags = <String, List<String>>{};
     for (final book in books) {
       tags[book.id] = await _storage.loadBookTags(book.id);
@@ -96,6 +102,9 @@ class _LibraryPageState extends State<LibraryPage> {
       _books
         ..clear()
         ..addAll(books);
+      _pdfs
+        ..clear()
+        ..addAll(pdfs);
       _bookTags
         ..clear()
         ..addAll(tags);
@@ -107,7 +116,7 @@ class _LibraryPageState extends State<LibraryPage> {
     if (_isNextcloudSyncing) return;
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['epub'],
+      allowedExtensions: ['epub', 'pdf'],
       withData: false,
     );
 
@@ -120,7 +129,58 @@ class _LibraryPageState extends State<LibraryPage> {
       return;
     }
 
-    await _importEpub(path);
+    if (p.extension(path).toLowerCase() == '.pdf') {
+      await _importPdf(path);
+    } else {
+      await _importEpub(path);
+    }
+  }
+
+  Future<void> _importPdf(String path) async {
+    setState(() => _isLoading = true);
+    try {
+      final document = await _pdfStorage.importDocument(path);
+      if (!mounted) return;
+      setState(() {
+        _pdfs.insert(0, document);
+        _isLoading = false;
+      });
+      await _openPdf(document);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showError(AppLocalizations.of(context).readerError(error.toString()));
+    }
+  }
+
+  Future<void> _openPdf(PdfDocument document) => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => PdfReaderPage(document: document)),
+  );
+
+  Future<void> _deletePdf(PdfDocument document) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.deleteBook),
+        content: Text(document.title),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _pdfStorage.removeDocument(document);
+    if (mounted) {
+      setState(() => _pdfs.removeWhere((pdf) => pdf.id == document.id));
+    }
   }
 
   Future<void> _importIncomingEpub(String path) =>
@@ -786,7 +846,7 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final hasBooks = _books.isNotEmpty;
+    final hasBooks = _books.isNotEmpty || _pdfs.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -825,13 +885,34 @@ class _LibraryPageState extends State<LibraryPage> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : hasBooks
-                  ? _BookList(
-                      books: _books,
-                      bookTags: _bookTags,
-                      onOpenBook: _openStoredBook,
-                      onDeleteBook: _deleteBook,
-                      onSaveBookTags: _saveBookTags,
-                      onPickEpub: _pickEpub,
+                  ? Column(
+                      children: [
+                        if (_pdfs.isNotEmpty)
+                          _PdfLibrarySection(
+                            documents: _pdfs,
+                            onOpen: _openPdf,
+                            onDelete: _deletePdf,
+                          ),
+                        if (_pdfs.isNotEmpty) const SizedBox(height: 12),
+                        Expanded(
+                          child: _books.isNotEmpty
+                              ? _BookList(
+                                  books: _books,
+                                  bookTags: _bookTags,
+                                  onOpenBook: _openStoredBook,
+                                  onDeleteBook: _deleteBook,
+                                  onSaveBookTags: _saveBookTags,
+                                  onPickEpub: _pickEpub,
+                                )
+                              : Center(
+                                  child: FilledButton.icon(
+                                    onPressed: _pickEpub,
+                                    icon: const Icon(Icons.file_open_outlined),
+                                    label: Text(l10n.chooseEpub),
+                                  ),
+                                ),
+                        ),
+                      ],
                     )
                   : _EmptyLibrary(onPickEpub: _pickEpub),
             ),
@@ -884,6 +965,55 @@ class _EmptyLibrary extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PdfLibrarySection extends StatelessWidget {
+  const _PdfLibrarySection({
+    required this.documents,
+    required this.onOpen,
+    required this.onDelete,
+  });
+
+  final List<PdfDocument> documents;
+  final ValueChanged<PdfDocument> onOpen;
+  final ValueChanged<PdfDocument> onDelete;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: (66 + documents.length * 56).clamp(100, 240).toDouble(),
+    child: Card(
+      child: Column(
+        children: [
+          const ListTile(
+            title: Text('PDF'),
+            leading: Icon(Icons.picture_as_pdf_outlined),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (context, index) {
+                final document = documents[index];
+                return ListTile(
+                  dense: true,
+                  title: Text(
+                    document.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => onOpen(document),
+                  trailing: IconButton(
+                    tooltip: AppLocalizations.of(context).deleteBook,
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => onDelete(document),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 enum _LibrarySort { recentlyAdded, title, author }

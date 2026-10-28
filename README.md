@@ -11,6 +11,8 @@ En marcha:
 - Proyecto Flutter para Android e iOS.
 - Biblioteca local persistente: los EPUB se copian al almacenamiento privado de la aplicación.
 - Selector de archivos EPUB.
+- Importación y lectura local de PDF en iPad y Android. Se conserva la última
+  página; los PDF aún no participan en subrayados ni sincronización Nextcloud.
 - Apertura de EPUB desde Archivos en iPadOS mediante «Compartir» → EduReader;
   el archivo se importa a la biblioteca y se abre en el lector.
 - Parseo de EPUB y apertura en el lector.
@@ -127,8 +129,9 @@ La configuración nativa de Readium requiere Android con `minSdk 24`,
 incluyen los pods de Readium con despliegue mínimo en iOS 15. En web se carga
 el adaptador `web/readiumReader.js` generado por `flutter_readium`.
 
-El alcance inicial es deliberadamente solo EPUB. PDF, DRM, audiolibros y
-funciones avanzadas quedan fuera hasta que el flujo básico sea sólido.
+La lectura de PDF es local y básica: importa el documento, recuerda la página
+y permite volver a abrirlo desde la biblioteca. Las funciones de anotación y
+sincronización siguen disponibles para EPUB. DRM y audiolibros quedan fuera.
 
 ## Desarrollo
 

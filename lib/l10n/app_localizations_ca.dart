@@ -23,14 +23,13 @@ class AppLocalizationsCa extends AppLocalizations {
   String get emptyLibraryTitle => 'La biblioteca és buida';
 
   @override
-  String get emptyLibraryBody =>
-      'EduReader se centra en els EPUB, una lectura còmoda i els subratllats que podrem enviar a FreeWise.';
+  String get emptyLibraryBody => 'Afig un EPUB o PDF per a començar a llegir.';
 
   @override
-  String get chooseEpub => 'Tria un EPUB';
+  String get chooseEpub => 'Tria un EPUB o PDF';
 
   @override
-  String get addEpub => 'Afegeix un altre EPUB';
+  String get addEpub => 'Afegeix EPUB o PDF';
 
   @override
   String get settings => 'Configuració';

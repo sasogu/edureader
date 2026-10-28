@@ -127,19 +127,19 @@ abstract class AppLocalizations {
   /// No description provided for @emptyLibraryBody.
   ///
   /// In es, this message translates to:
-  /// **'EduReader empieza centrado en EPUB, lectura cómoda y subrayados que podremos enviar a FreeWise.'**
+  /// **'Añade un EPUB o PDF para empezar a leer.'**
   String get emptyLibraryBody;
 
   /// No description provided for @chooseEpub.
   ///
   /// In es, this message translates to:
-  /// **'Elegir un EPUB'**
+  /// **'Elegir un EPUB o PDF'**
   String get chooseEpub;
 
   /// No description provided for @addEpub.
   ///
   /// In es, this message translates to:
-  /// **'Añadir otro EPUB'**
+  /// **'Añadir EPUB o PDF'**
   String get addEpub;
 
   /// No description provided for @settings.

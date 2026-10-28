@@ -11,9 +11,9 @@
     }
   },
   "emptyLibraryTitle": "Your library is empty",
-  "emptyLibraryBody": "EduReader focuses on EPUBs, comfortable reading, and highlights you can send to FreeWise.",
-  "chooseEpub": "Choose an EPUB",
-  "addEpub": "Add another EPUB",
+  "emptyLibraryBody": "Add an EPUB or PDF to start reading.",
+  "chooseEpub": "Choose an EPUB or PDF",
+  "addEpub": "Add EPUB or PDF",
   "settings": "Settings",
   "nextcloudSync": "Nextcloud sync",
   "nextcloudNeverSynced": "No successful sync yet.",

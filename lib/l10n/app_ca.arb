@@ -11,9 +11,9 @@
     }
   },
   "emptyLibraryTitle": "La biblioteca és buida",
-  "emptyLibraryBody": "EduReader se centra en els EPUB, una lectura còmoda i els subratllats que podrem enviar a FreeWise.",
-  "chooseEpub": "Tria un EPUB",
-  "addEpub": "Afegeix un altre EPUB",
+  "emptyLibraryBody": "Afig un EPUB o PDF per a començar a llegir.",
+  "chooseEpub": "Tria un EPUB o PDF",
+  "addEpub": "Afegeix EPUB o PDF",
   "settings": "Configuració",
   "nextcloudSync": "Sincronització amb Nextcloud",
   "nextcloudNeverSynced": "Encara no hi ha cap sincronització correcta.",

@@ -15,7 +15,7 @@ void main() {
 
     expect(find.text('EduReader'), findsOneWidget);
     expect(find.text('Tu biblioteca está vacía'), findsOneWidget);
-    expect(find.text('Elegir un EPUB'), findsOneWidget);
+    expect(find.text('Elegir un EPUB o PDF'), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsNothing);
   });
 

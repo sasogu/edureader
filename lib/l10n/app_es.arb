@@ -11,9 +11,9 @@
     }
   },
   "emptyLibraryTitle": "Tu biblioteca está vacía",
-  "emptyLibraryBody": "EduReader empieza centrado en EPUB, lectura cómoda y subrayados que podremos enviar a FreeWise.",
-  "chooseEpub": "Elegir un EPUB",
-  "addEpub": "Añadir otro EPUB",
+  "emptyLibraryBody": "Añade un EPUB o PDF para empezar a leer.",
+  "chooseEpub": "Elegir un EPUB o PDF",
+  "addEpub": "Añadir EPUB o PDF",
   "settings": "Ajustes",
   "nextcloudSync": "Sincronización Nextcloud",
   "nextcloudNeverSynced": "Aún no hay una sincronización correcta.",

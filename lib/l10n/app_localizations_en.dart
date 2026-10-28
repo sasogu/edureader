@@ -23,14 +23,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyLibraryTitle => 'Your library is empty';
 
   @override
-  String get emptyLibraryBody =>
-      'EduReader focuses on EPUBs, comfortable reading, and highlights you can send to FreeWise.';
+  String get emptyLibraryBody => 'Add an EPUB or PDF to start reading.';
 
   @override
-  String get chooseEpub => 'Choose an EPUB';
+  String get chooseEpub => 'Choose an EPUB or PDF';
 
   @override
-  String get addEpub => 'Add another EPUB';
+  String get addEpub => 'Add EPUB or PDF';
 
   @override
   String get settings => 'Settings';
