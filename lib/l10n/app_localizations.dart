@@ -790,6 +790,12 @@ abstract class AppLocalizations {
   /// **'Añadir nota'**
   String get addNote;
 
+  /// No description provided for @epubFootnote.
+  ///
+  /// In es, this message translates to:
+  /// **'Nota del libro'**
+  String get epubFootnote;
+
   /// No description provided for @noteHint.
   ///
   /// In es, this message translates to:

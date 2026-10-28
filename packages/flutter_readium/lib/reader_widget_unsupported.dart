@@ -13,6 +13,7 @@ class ReadiumReaderWidget extends StatelessWidget {
     this.onSelectionAction,
     this.onDecorationInteraction,
     this.onImageTapped,
+    this.onFootnoteTapped,
     this.selectionActions = const [],
     this.allowedDefaultActions,
     this.goBackwardSemanticLabel = 'Go Backward',
@@ -32,6 +33,7 @@ class ReadiumReaderWidget extends StatelessWidget {
   final ValueChanged<SelectionActionEvent>? onSelectionAction;
   final ValueChanged<DecorationInteractionEvent>? onDecorationInteraction;
   final ValueChanged<ImageTapEvent>? onImageTapped;
+  final ValueChanged<String>? onFootnoteTapped;
   final List<SelectionAction> selectionActions;
   final Set<DefaultSelectionAction>? allowedDefaultActions;
   final String goBackwardSemanticLabel;

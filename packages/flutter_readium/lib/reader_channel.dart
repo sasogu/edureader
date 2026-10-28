@@ -29,6 +29,7 @@ class ReadiumReaderChannel extends MethodChannel {
     this.onSelectionAction,
     this.onDecorationInteraction,
     this.onImageTapped,
+    this.onFootnoteTapped,
   }) {
     setMethodCallHandler(onMethodCall);
   }
@@ -52,6 +53,9 @@ class ReadiumReaderChannel extends MethodChannel {
 
   /// Called when the user taps an image in the EPUB.
   void Function(ImageTapEvent)? onImageTapped;
+
+  /// Called with HTML supplied by the native EPUB navigator for a footnote.
+  void Function(String)? onFootnoteTapped;
 
   /// Go e.g. navigate to a specific locator in the publication.
   Future<void> go(
@@ -185,6 +189,9 @@ class ReadiumReaderChannel extends MethodChannel {
           _log.d('onImageTapped ${event.href}');
           onImageTapped?.call(event);
 
+          return null;
+        case 'onFootnoteTapped':
+          onFootnoteTapped?.call(call.arguments as String);
           return null;
         default:
           throw UnimplementedError('Unhandled call ${call.method}');

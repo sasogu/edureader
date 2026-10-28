@@ -26,6 +26,7 @@ class ReadiumReaderWidget extends StatefulWidget {
     this.onSelectionAction,
     this.onDecorationInteraction,
     this.onImageTapped,
+    this.onFootnoteTapped,
     this.selectionActions = const [],
     this.allowedDefaultActions,
     this.goBackwardSemanticLabel = 'Go Backward',
@@ -71,6 +72,10 @@ class ReadiumReaderWidget extends StatefulWidget {
   /// does not yet expose a target-element API, so this callback never fires
   /// there. On iOS it uses swift-toolkit's `ImageContentElement` SPI.
   final ValueChanged<ImageTapEvent>? onImageTapped;
+
+  /// Called with the HTML content of an EPUB footnote instead of navigating to it.
+  /// Currently supported by the iOS navigator.
+  final ValueChanged<String>? onFootnoteTapped;
 
   /// Native context menu actions shown when text is selected.
   final List<SelectionAction> selectionActions;
@@ -304,6 +309,7 @@ class _ReadiumReaderWidgetState extends State<ReadiumReaderWidget> implements Re
       'initialLocator': widget.initialLocator == null ? null : json.encode(widget.initialLocator),
       'preloadPreviousPositionCount': widget.preloadPreviousPositionCount,
       'preloadNextPositionCount': widget.preloadNextPositionCount,
+      'handlesFootnotes': widget.onFootnoteTapped != null,
       if (widget.selectionActions.isNotEmpty)
         'selectionActions': widget.selectionActions.map((a) => a.toJson()).toList(),
       if (widget.allowedDefaultActions != null)
@@ -401,6 +407,7 @@ class _ReadiumReaderWidgetState extends State<ReadiumReaderWidget> implements Re
       onSelectionAction: widget.onSelectionAction,
       onDecorationInteraction: widget.onDecorationInteraction,
       onImageTapped: widget.onImageTapped,
+      onFootnoteTapped: widget.onFootnoteTapped,
     );
 
     if (widget.selectionActions.isNotEmpty) {

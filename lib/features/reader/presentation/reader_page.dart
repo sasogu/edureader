@@ -13,6 +13,7 @@ import '../../../core/widgets/completed_dialog.dart';
 import '../data/freewise_exporter.dart';
 import '../data/freewise_importer.dart';
 import '../data/annotation_storage.dart';
+import '../data/epub_footnote.dart';
 import '../data/freewise_sync.dart';
 import '../data/reader_bookmark.dart';
 import '../data/readium_storage.dart';
@@ -74,6 +75,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   bool _isChoosingHighlight = false;
   bool _isSearching = false;
   bool _isImportingFreewise = false;
+  bool _isFootnoteOpen = false;
   bool _isFullscreen = false;
   int _readerOverlayCount = 0;
   bool get _isReaderMenuOpen => _readerOverlayCount > 0;
@@ -2027,6 +2029,36 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       onTextSelected: _rememberSelection,
       onSelectionAction: _handleSelectionAction,
       onDecorationInteraction: _removeDecoration,
+      onFootnoteTapped: _showEpubFootnote,
+    );
+  }
+
+  void _showEpubFootnote(String html) {
+    if (!mounted || _isFootnoteOpen) return;
+    final note = epubFootnoteText(html);
+    if (note.isEmpty) return;
+    _isFootnoteOpen = true;
+    unawaited(
+      _waitForReaderOverlay(
+        showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(_l10n.epubFootnote),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: SingleChildScrollView(child: SelectableText(note)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(
+                  MaterialLocalizations.of(dialogContext).closeButtonLabel,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ).whenComplete(() => _isFootnoteOpen = false),
     );
   }
 }

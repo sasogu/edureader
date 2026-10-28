@@ -400,6 +400,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addNote => 'Añadir nota';
 
   @override
+  String get epubFootnote => 'Nota del libro';
+
+  @override
   String get noteHint => 'Escribe una nota';
 
   @override

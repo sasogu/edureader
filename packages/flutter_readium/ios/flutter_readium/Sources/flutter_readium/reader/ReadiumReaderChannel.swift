@@ -17,6 +17,10 @@ class ReadiumReaderChannel: FlutterMethodChannel {
     invokeMethod("onExternalLinkActivated", arguments: url.absoluteString as String?)
   }
 
+  func onFootnoteTapped(content: String) {
+    invokeMethod("onFootnoteTapped", arguments: content)
+  }
+
   func onTextSelected(locator: Locator, selectedText: String?) {
     var json: [String: Any] = [:]
     if let locatorString = try? locator.jsonString(),

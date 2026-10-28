@@ -242,6 +242,7 @@
   "delete": "Eliminar",
   "highlightDeleted": "Subrayado eliminado.",
   "addNote": "Añadir nota",
+  "epubFootnote": "Nota del libro",
   "noteHint": "Escribe una nota",
   "saveAndSync": "Guardar y sincronizar",
   "configureFreewise": "Configurar FreeWise",

@@ -242,6 +242,7 @@
   "delete": "Elimina",
   "highlightDeleted": "S’ha eliminat el subratllat.",
   "addNote": "Afegeix una nota",
+  "epubFootnote": "Nota del llibre",
   "noteHint": "Escriu una nota",
   "saveAndSync": "Desa i sincronitza",
   "configureFreewise": "Configura FreeWise",

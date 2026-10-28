@@ -398,6 +398,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addNote => 'Add note';
 
   @override
+  String get epubFootnote => 'Book note';
+
+  @override
   String get noteHint => 'Write a note';
 
   @override

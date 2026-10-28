@@ -48,6 +48,8 @@ el propio lector.
 
 Durante la lectura, el botón de índice abre la tabla de contenidos del EPUB y
 permite saltar directamente a sus capítulos y secciones.
+En iPadOS, las notas al pie reconocidas por Readium se muestran en un diálogo
+al tocar su número o enlace; al cerrarlo se conserva la página de lectura.
 
 También se pueden guardar varios marcadores con nombre opcional por libro,
 volver a cada punto y eliminarlos sin afectar al progreso automático ni a los

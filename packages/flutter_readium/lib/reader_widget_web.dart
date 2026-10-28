@@ -21,6 +21,7 @@ class ReadiumReaderWidget extends StatefulWidget {
     this.onSelectionAction,
     this.onDecorationInteraction,
     this.onImageTapped,
+    this.onFootnoteTapped,
     this.selectionActions,
     this.allowedDefaultActions,
     super.key,
@@ -42,6 +43,7 @@ class ReadiumReaderWidget extends StatefulWidget {
   final void Function(SelectionActionEvent)? onSelectionAction;
   final void Function(DecorationInteractionEvent)? onDecorationInteraction;
   final ValueChanged<ImageTapEvent>? onImageTapped;
+  final ValueChanged<String>? onFootnoteTapped;
   final List<SelectionAction>? selectionActions;
   final Set<DefaultSelectionAction>? allowedDefaultActions;
 

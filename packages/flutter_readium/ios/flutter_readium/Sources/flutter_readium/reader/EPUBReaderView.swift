@@ -32,6 +32,7 @@ public class EPUBReaderView: NSObject, FlutterPlatformView, ReadiumReaderView, E
   var lastSyncLocator: Locator?
   var lastSyncSegmentDuration: TimeInterval?
   let publication: Publication
+  let handlesFootnotes: Bool
   private var lastViewport: NavigatorViewport?
 
   /// Runtime narration-sync flag: true = reader follows audio cues (default),
@@ -80,6 +81,7 @@ public class EPUBReaderView: NSObject, FlutterPlatformView, ReadiumReaderView, E
   ) {
     Log.reader.info("init")
     let creationParams = args as! Dictionary<String, Any?>
+    handlesFootnotes = creationParams["handlesFootnotes"] as? Bool ?? false
 
     let publication = FlutterReadiumPlugin.instance!.getCurrentPublication()!
     self.publication = publication
@@ -322,8 +324,9 @@ public class EPUBReaderView: NSObject, FlutterPlatformView, ReadiumReaderView, E
   /// note yourself, using its `content`. `link.type` contains information about the
   /// format of `content` and `referrer`, such as `text/html`.
   public func navigator(_ navigator: Navigator, shouldNavigateToNoteAt link: Link, content: String, referrer: String?) -> Bool {
-    Log.reader.info("user tapped on note: \(content)")
-    return true
+    guard handlesFootnotes, !content.isEmpty else { return true }
+    channel.onFootnoteTapped(content: content)
+    return false
   }
 
   /// Called when the user taps an image element inside an EPUB resource.
