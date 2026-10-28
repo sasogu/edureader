@@ -10,14 +10,14 @@ Ninguno. EduReader no tiene cuentas de usuario, anuncios, analítica ni informes
 
 ## Datos que se guardan en tu dispositivo
 
-Los libros que importas, la posición de lectura, los marcadores, los subrayados, las notas y los ajustes de la aplicación se guardan solo en tu dispositivo. Se borran al desinstalar la aplicación.
+Los libros que importas, la posición de lectura, los marcadores, los subrayados, las notas y los ajustes de la aplicación se guardan en tu dispositivo. La copia local se borra al desinstalar la aplicación. Las copias que hayas sincronizado con Nextcloud o FreeWise permanecen en esos servidores hasta que las elimines allí.
 
 ## Servicios que configuras tú
 
 EduReader puede conectarse, solo si tú lo configuras, a dos tipos de servidor:
 
-- **Nextcloud**: para sincronizar libros, posición de lectura y marcadores entre tus dispositivos. Los datos viajan únicamente al servidor Nextcloud cuya dirección introduces.
-- **FreeWise**: para enviar tus subrayados y notas. Los datos viajan únicamente al servidor FreeWise cuya dirección introduces.
+- **Nextcloud**: para sincronizar libros, posición de lectura, marcadores, subrayados y notas entre tus dispositivos. Los datos viajan únicamente al servidor Nextcloud cuya dirección introduces.
+- **FreeWise**: para enviar tus subrayados y notas y, si eliges recuperarlos, descargar su CSV. Los datos viajan únicamente al servidor FreeWise cuya dirección introduces.
 
 La contraseña de aplicación de Nextcloud se guarda en el almacén seguro del sistema (Llavero en iOS, Keystore en Android). De FreeWise solo se guarda la dirección del servidor. El tratamiento de los datos en esos servidores depende de quien los administre.
 

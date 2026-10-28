@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_readium/flutter_readium.dart';
@@ -8,6 +11,7 @@ import 'package:flutter_readium/flutter_readium.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/widgets/completed_dialog.dart';
 import '../data/freewise_exporter.dart';
+import '../data/freewise_importer.dart';
 import '../data/annotation_storage.dart';
 import '../data/freewise_sync.dart';
 import '../data/reader_bookmark.dart';
@@ -21,6 +25,9 @@ enum _ReaderMenuAction {
   goToProgress,
   exportAnnotations,
   syncAnnotations,
+  importFreewiseServer,
+  importFreewiseCsv,
+  viewAnnotations,
 }
 
 class ReaderPage extends StatefulWidget {
@@ -50,6 +57,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   final FlutterReadium _readium = FlutterReadium();
   final ReadiumStorage _storage = ReadiumStorage();
   final FreeWiseExporter _exporter = FreeWiseExporter();
+  final FreeWiseImporter _importer = FreeWiseImporter();
   final FreeWiseSync _sync = FreeWiseSync();
 
   Publication? _publication;
@@ -65,6 +73,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   bool _isSavingHighlight = false;
   bool _isChoosingHighlight = false;
   bool _isSearching = false;
+  bool _isImportingFreewise = false;
   bool _isFullscreen = false;
   int _readerOverlayCount = 0;
   bool get _isReaderMenuOpen => _readerOverlayCount > 0;
@@ -847,6 +856,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         _exportAnnotations();
       case _ReaderMenuAction.syncAnnotations:
         _syncAnnotations();
+      case _ReaderMenuAction.importFreewiseServer:
+        _importFreewise(fromServer: true);
+      case _ReaderMenuAction.importFreewiseCsv:
+        _importFreewise(fromServer: false);
+      case _ReaderMenuAction.viewAnnotations:
+        _viewAnnotations();
     }
   }
 
@@ -893,6 +908,27 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
               onTap: () => Navigator.of(
                 sheetContext,
               ).pop(_ReaderMenuAction.syncAnnotations),
+            ),
+            ListTile(
+              leading: const Icon(Icons.cloud_download_outlined),
+              title: Text(_l10n.importFreewiseServer),
+              onTap: () => Navigator.of(
+                sheetContext,
+              ).pop(_ReaderMenuAction.importFreewiseServer),
+            ),
+            ListTile(
+              leading: const Icon(Icons.upload_file_outlined),
+              title: Text(_l10n.importFreewiseCsv),
+              onTap: () => Navigator.of(
+                sheetContext,
+              ).pop(_ReaderMenuAction.importFreewiseCsv),
+            ),
+            ListTile(
+              leading: const Icon(Icons.format_quote_outlined),
+              title: Text(_l10n.viewAnnotations),
+              onTap: () => Navigator.of(
+                sheetContext,
+              ).pop(_ReaderMenuAction.viewAnnotations),
             ),
           ],
         ),
@@ -1512,6 +1548,211 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     ).showSnackBar(SnackBar(content: Text(_l10n.annotationsExported(count))));
   }
 
+  Future<void> _viewAnnotations() async {
+    final storage = AnnotationStorage();
+    final highlights = await storage.loadHighlights(widget.book.id);
+    final notes = await storage.loadNotes(widget.book.id);
+    if (!mounted) return;
+    final entries = <({String text, String note})>[];
+    final usedNotes = <String>{};
+    for (final highlight in highlights) {
+      final matching = notes.where(
+        (note) => note.selectedText == highlight.text,
+      );
+      usedNotes.addAll(matching.map((note) => note.id));
+      entries.add((
+        text: highlight.text,
+        note: matching.map((note) => note.content).join('\n'),
+      ));
+    }
+    for (final decoration in _decorations) {
+      final text = decoration.locator.text?.highlight;
+      if (text != null &&
+          text.isNotEmpty &&
+          !entries.any((entry) => entry.text == text)) {
+        entries.add((text: text, note: ''));
+      }
+    }
+    for (final note in notes.where((note) => !usedNotes.contains(note.id))) {
+      entries.add((text: note.selectedText, note: note.content));
+    }
+    await _waitForReaderOverlay(
+      _showReaderSheet<void>(
+        builder: (sheetContext) => SafeArea(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(sheetContext).height * 0.75,
+            child: Column(
+              children: [
+                ListTile(
+                  title: Text(_l10n.viewAnnotations),
+                  trailing: IconButton(
+                    tooltip: _l10n.close,
+                    onPressed: () => Navigator.pop(sheetContext),
+                    icon: const Icon(Icons.close),
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: entries.isEmpty
+                      ? Center(child: Text(_l10n.noAnnotations))
+                      : ListView.separated(
+                          itemCount: entries.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, index) {
+                            final entry = entries[index];
+                            return ListTile(
+                              title: SelectableText(entry.text),
+                              subtitle: entry.note.isEmpty
+                                  ? null
+                                  : SelectableText(entry.note),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importFreewise({required bool fromServer}) async {
+    if (_isImportingFreewise || _publication == null) return;
+    setState(() => _isImportingFreewise = true);
+    try {
+      late final String csv;
+      if (fromServer) {
+        final baseUrl = await _sync.getBaseUrl();
+        if (baseUrl == null || baseUrl.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(_l10n.freewiseNotConfigured)),
+            );
+          }
+          return;
+        }
+        csv = await _importer.downloadCsv(baseUrl);
+      } else {
+        final picked = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['csv'],
+          withData: true,
+        );
+        if (picked == null || picked.files.isEmpty) return;
+        final file = picked.files.single;
+        final bytes =
+            file.bytes ??
+            (file.path == null ? null : await File(file.path!).readAsBytes());
+        if (bytes == null) throw const FormatException('CSV sin datos');
+        csv = utf8.decode(bytes);
+      }
+      var entries = _importer.parseForBook(widget.book, csv);
+      if (!mounted) return;
+      if (entries.isEmpty) {
+        final titles = _importer.bookTitles(csv);
+        if (titles.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_l10n.freewiseImportNoMatches)),
+          );
+          return;
+        }
+        final selectedTitle = await _waitForReaderOverlay(
+          showCompletedDialog<String>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(_l10n.chooseFreewiseBook),
+              content: SizedBox(
+                width: 420,
+                height: 300,
+                child: ListView.builder(
+                  itemCount: titles.length,
+                  itemBuilder: (_, index) => ListTile(
+                    title: Text(titles[index]),
+                    onTap: () => Navigator.pop(dialogContext, titles[index]),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(_l10n.cancel),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (selectedTitle == null || !mounted) return;
+        entries = _importer.parseForBook(
+          widget.book,
+          csv,
+          sourceTitle: selectedTitle,
+        );
+        if (entries.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_l10n.freewiseImportNoMatches)),
+          );
+          return;
+        }
+      }
+      final confirmed = await _waitForReaderOverlay(
+        showCompletedDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(_l10n.restoreAnnotations),
+            content: Text(_l10n.freewiseImportPreview(entries.length)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(_l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(_l10n.restoreAnnotations),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+
+      final result = await _importer.importEntries(
+        widget.book,
+        entries,
+        search: _readium.searchInPublication,
+        applyDecorations: (decorations) async {
+          await _readium.applyDecorations('edureader', decorations);
+        },
+      );
+      if (!mounted) return;
+      final decorations = await _storage.loadDecorations(widget.book.id);
+      if (!mounted) return;
+      setState(() => _decorations = decorations);
+      unawaited(widget.onBookStateChanged?.call());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _l10n.freewiseImportResult(
+              result.highlights,
+              result.notes,
+              result.visualHighlights,
+              result.unlocated,
+            ),
+          ),
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.freewiseImportFailed)));
+      }
+    } finally {
+      if (mounted) setState(() => _isImportingFreewise = false);
+    }
+  }
+
   Future<void> _syncIfConfigured() async {
     try {
       final baseUrl = await _sync.getBaseUrl();
@@ -1637,8 +1878,13 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                 ),
                 IconButton(
                   tooltip: _l10n.readerMore,
-                  onPressed: _openReaderMenu,
-                  icon: const Icon(Icons.more_vert),
+                  onPressed: _isImportingFreewise ? null : _openReaderMenu,
+                  icon: _isImportingFreewise
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.more_vert),
                 ),
               ],
             ),

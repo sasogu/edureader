@@ -70,6 +70,13 @@ endpoint de importación de FreeWise. La primera vez solicita la URL del
 servidor y la guarda localmente. Las siguientes sincronizaciones son
 incrementales y solo envían anotaciones posteriores a la última sincronización
 correcta. Si falla la red, el intento queda pendiente.
+El menú del lector también permite recuperar anotaciones desde el servidor
+FreeWise configurado o desde su CSV exportado. Se importan el texto y las notas
+del libro elegido sin duplicarlos. Un subrayado solo se vuelve a dibujar cuando
+la búsqueda encuentra una única ubicación inequívoca en el EPUB; el resultado
+indica cuántas citas quedaron sin marca visual.
+La vista «Ver subrayados y notas» permite consultar también las citas que no
+pudieron colocarse sobre el texto del EPUB.
 
 La biblioteca ofrece sincronización manual con Nextcloud por WebDAV. Se
 configura el servidor HTTPS, el usuario y una contraseña de aplicación; esta
@@ -97,6 +104,9 @@ con el estado local y se sincroniza de nuevo en la próxima apertura, al añadir
 eliminar subrayados, al guardar notas, al cerrar el libro o al pasar la app a
 segundo plano. Las
 preferencias de lectura todavía no se sincronizan.
+El botón de Nextcloud muestra en verde una sincronización correcta y en rojo
+un error pendiente. Su menú indica la hora del último éxito y del último error,
+con una causa general sin guardar direcciones ni mensajes privados del servidor.
 
 La biblioteca permite filtrar por título, autor y una o varias etiquetas, y
 ordenar por incorporación, título o autor; estas operaciones solo cambian la

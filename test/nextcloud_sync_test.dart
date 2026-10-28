@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:crypto/crypto.dart';
 import 'package:edureader/features/reader/data/nextcloud_sync.dart';
+import 'package:edureader/features/reader/data/nextcloud_sync_status.dart';
 import 'package:edureader/features/reader/data/readium_storage.dart';
 import 'package:edureader/features/reader/data/annotation_storage.dart';
 import 'package:edureader/features/reader/data/freewise_exporter.dart';
@@ -42,6 +43,36 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  test('records the outcome of Nextcloud synchronization', () async {
+    final secrets = _MemorySecretStore();
+    final failing = NextcloudSync(
+      client: MockClient((_) async => http.Response('', 503)),
+      secretStore: secrets,
+    );
+    await failing.saveConnection(
+      serverUrl: 'https://cloud.example.org',
+      username: 'reader',
+      appPassword: 'secret',
+    );
+    await expectLater(failing.syncLibrary([]), throwsA(isA<StateError>()));
+    final statusStore = NextcloudSyncStatusStore();
+    expect((await statusStore.load()).issue, NextcloudSyncIssue.server);
+    expect((await statusStore.load()).hasUnresolvedFailure, isTrue);
+
+    final succeeding = NextcloudSync(
+      client: MockClient(
+        (request) async => request.method == 'GET'
+            ? http.Response('', 404)
+            : http.Response('', 201),
+      ),
+      secretStore: secrets,
+    );
+    await succeeding.syncLibrary([]);
+    final recovered = await statusStore.load();
+    expect(recovered.hasUnresolvedFailure, isFalse);
+    expect(recovered.lastSuccess, isNotNull);
+  });
 
   test('stores the app password outside shared preferences', () async {
     final secrets = _MemorySecretStore();
@@ -630,6 +661,7 @@ void main() {
       await pending;
 
       expect(methods, isEmpty);
+      expect((await NextcloudSyncStatusStore().load()).lastSuccess, isNull);
       await sync.syncBook(book, isCancelled: () => methods.isNotEmpty);
       expect(methods, ['GET']);
       expect(

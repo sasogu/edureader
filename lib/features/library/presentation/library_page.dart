@@ -10,6 +10,7 @@ import '../../../core/settings/app_settings.dart';
 import '../../../core/widgets/completed_dialog.dart';
 import '../../reader/data/freewise_sync.dart';
 import '../../reader/data/nextcloud_sync.dart';
+import '../../reader/data/nextcloud_sync_status.dart';
 import '../data/cover_extractor.dart';
 import '../data/library_storage.dart';
 import '../../reader/presentation/reader_page.dart';
@@ -30,18 +31,51 @@ class _LibraryPageState extends State<LibraryPage> {
   final LibraryStorage _storage = LibraryStorage();
   final FreeWiseSync _sync = FreeWiseSync();
   final NextcloudSync _nextcloud = NextcloudSync();
+  final NextcloudSyncStatusStore _statusStore = NextcloudSyncStatusStore();
   final List<EpubBook> _books = [];
   final Map<String, List<String>> _bookTags = {};
   bool _isLoading = false;
   bool _isSettingsOpen = false;
   bool _isNextcloudSyncing = false;
   int _autoSyncs = 0;
+  NextcloudSyncStatus _syncStatus = const NextcloudSyncStatus();
+  StreamSubscription<void>? _syncStatusSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadLibrary();
+    _syncStatusSubscription = _statusStore.changes.listen(
+      (_) => _loadSyncStatus(),
+    );
+    _loadSyncStatus();
   }
+
+  @override
+  void dispose() {
+    _syncStatusSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSyncStatus() async {
+    final status = await _statusStore.load();
+    if (mounted) setState(() => _syncStatus = status);
+  }
+
+  String _syncTime(DateTime value) {
+    final local = value.toLocal();
+    final material = MaterialLocalizations.of(context);
+    return '${material.formatShortDate(local)} '
+        '${material.formatTimeOfDay(TimeOfDay.fromDateTime(local))}';
+  }
+
+  String _syncIssue(AppLocalizations l10n) => switch (_syncStatus.issue) {
+    NextcloudSyncIssue.network => l10n.nextcloudErrorNetwork,
+    NextcloudSyncIssue.authentication => l10n.nextcloudErrorAuthentication,
+    NextcloudSyncIssue.server => l10n.nextcloudErrorServer,
+    NextcloudSyncIssue.data => l10n.nextcloudErrorData,
+    _ => l10n.nextcloudErrorUnknown,
+  };
 
   Future<void> _loadLibrary() async {
     final books = await _storage.loadBooks();
@@ -185,6 +219,7 @@ class _LibraryPageState extends State<LibraryPage> {
       return true;
     } finally {
       if (mounted) setState(() => _autoSyncs--);
+      await _loadSyncStatus();
     }
   }
 
@@ -241,6 +276,8 @@ class _LibraryPageState extends State<LibraryPage> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       _showError(l10n.deleteBookFailed(error.toString()));
+    } finally {
+      await _loadSyncStatus();
     }
   }
 
@@ -371,6 +408,7 @@ class _LibraryPageState extends State<LibraryPage> {
         username: configuration.username,
         appPassword: configuration.appPassword,
       );
+      await _loadSyncStatus();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -425,6 +463,7 @@ class _LibraryPageState extends State<LibraryPage> {
       if (mounted) _showError(l10n.syncFailed(error.toString()));
     } finally {
       if (mounted) setState(() => _isNextcloudSyncing = false);
+      await _loadSyncStatus();
     }
   }
 
@@ -442,6 +481,33 @@ class _LibraryPageState extends State<LibraryPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              leading: Icon(
+                _syncStatus.hasUnresolvedFailure
+                    ? Icons.cloud_off_outlined
+                    : Icons.cloud_done_outlined,
+                color: _syncStatus.hasUnresolvedFailure
+                    ? Theme.of(sheetContext).colorScheme.error
+                    : null,
+              ),
+              title: Text(l10n.nextcloudSync),
+              subtitle: Text(
+                [
+                  if (_syncStatus.lastSuccess == null)
+                    l10n.nextcloudNeverSynced
+                  else
+                    l10n.nextcloudLastSuccess(
+                      _syncTime(_syncStatus.lastSuccess!),
+                    ),
+                  if (_syncStatus.hasUnresolvedFailure)
+                    l10n.nextcloudLastFailure(
+                      _syncTime(_syncStatus.lastFailure!),
+                      _syncIssue(l10n),
+                    ),
+                ].join('\n'),
+              ),
+            ),
+            const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.sync),
               title: Text(l10n.syncLibrary),
@@ -715,7 +781,14 @@ class _LibraryPageState extends State<LibraryPage> {
                     dimension: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.cloud_sync_outlined),
+                : Icon(
+                    Icons.cloud_sync_outlined,
+                    color: _syncStatus.hasUnresolvedFailure
+                        ? Theme.of(context).colorScheme.error
+                        : _syncStatus.lastSuccess != null
+                        ? Colors.green
+                        : null,
+                  ),
           ),
           IconButton(
             onPressed: _openSettings,

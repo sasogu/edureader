@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../library/data/library_storage.dart';
 import 'annotation_storage.dart';
+import 'nextcloud_sync_status.dart';
 import 'readium_storage.dart';
 
 class NextcloudConnection {
@@ -61,9 +62,11 @@ class NextcloudSync {
     NextcloudSecretStore? secretStore,
     LibraryStorage? libraryStorage,
     ReadiumStorage? readiumStorage,
+    NextcloudSyncStatusStore? statusStore,
   }) : _secretStore = secretStore ?? FlutterNextcloudSecretStore(),
        _library = libraryStorage ?? LibraryStorage(),
        _readium = readiumStorage ?? ReadiumStorage(),
+       _statusStore = statusStore ?? NextcloudSyncStatusStore(),
        _client = client ?? http.Client();
 
   static const _serverKey = 'nextcloud_server_url';
@@ -77,14 +80,36 @@ class NextcloudSync {
   final NextcloudSecretStore _secretStore;
   final LibraryStorage _library;
   final ReadiumStorage _readium;
+  final NextcloudSyncStatusStore _statusStore;
 
   // Las operaciones leen, modifican y reescriben el índice remoto: si dos se
   // solapan (al cerrar un libro, al pasar a segundo plano o a mano), la última
   // en escribir borra lo que publicó la otra. Por eso se ejecutan en fila.
   Future<void> _queue = Future.value();
 
-  Future<T> _serialized<T>(Future<T> Function() action) {
-    final result = _queue.then((_) => action());
+  Future<T> _serialized<T>(
+    Future<T> Function() action, {
+    bool recordStatus = true,
+    bool Function()? shouldRecordSuccess,
+  }) {
+    final result = _queue.then((_) async {
+      try {
+        final value = await action();
+        if (recordStatus && (shouldRecordSuccess?.call() ?? true)) {
+          try {
+            await _statusStore.recordSuccess();
+          } catch (_) {}
+        }
+        return value;
+      } catch (error) {
+        if (recordStatus) {
+          try {
+            await _statusStore.recordFailure(error);
+          } catch (_) {}
+        }
+        rethrow;
+      }
+    });
     _queue = result.then<void>((_) {}, onError: (Object _) {});
     return result;
   }
@@ -129,11 +154,16 @@ class NextcloudSync {
       }
     }
     final preferences = await SharedPreferences.getInstance();
+    final accountChanged =
+        preferences.getString(_serverKey) != normalizedUrl ||
+        preferences.getString(_usernameKey) != normalizedUsername;
     await preferences.setString(_serverKey, normalizedUrl);
     await preferences.setString(_usernameKey, normalizedUsername);
+    if (accountChanged) await _statusStore.clear();
   }
 
-  Future<void> testConnection() => _serialized(_testConnection);
+  Future<void> testConnection() =>
+      _serialized(_testConnection, recordStatus: false);
 
   Future<void> _testConnection() async {
     final connection = await _requireConnection();
@@ -291,6 +321,7 @@ class NextcloudSync {
       uploadIfMissing: uploadIfMissing,
       isCancelled: isCancelled,
     ),
+    shouldRecordSuccess: () => !(isCancelled?.call() ?? false),
   );
 
   Future<bool> _syncBook(

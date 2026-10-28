@@ -39,6 +39,36 @@ class AppLocalizationsCa extends AppLocalizations {
   String get nextcloudSync => 'Sincronització amb Nextcloud';
 
   @override
+  String get nextcloudNeverSynced =>
+      'Encara no hi ha cap sincronització correcta.';
+
+  @override
+  String nextcloudLastSuccess(String when) {
+    return 'Última sincronització correcta: $when';
+  }
+
+  @override
+  String nextcloudLastFailure(String when, String reason) {
+    return 'Últim error: $when · $reason';
+  }
+
+  @override
+  String get nextcloudErrorNetwork => 'Sense connexió o temps d’espera esgotat';
+
+  @override
+  String get nextcloudErrorAuthentication =>
+      'Comprova la contrasenya d’aplicació';
+
+  @override
+  String get nextcloudErrorServer => 'El servidor no ha respost correctament';
+
+  @override
+  String get nextcloudErrorData => 'Dades de sincronització no vàlides';
+
+  @override
+  String get nextcloudErrorUnknown => 'Error de sincronització';
+
+  @override
   String get searchLibrary => 'Cerca a la biblioteca';
 
   @override
@@ -399,6 +429,50 @@ class AppLocalizationsCa extends AppLocalizations {
   String freewiseSyncFailed(String error) {
     return 'No s’ha pogut sincronitzar amb FreeWise: $error';
   }
+
+  @override
+  String get importFreewiseServer => 'Recupera de FreeWise';
+
+  @override
+  String get importFreewiseCsv => 'Importa un CSV de FreeWise';
+
+  @override
+  String get restoreAnnotations => 'Recupera anotacions';
+
+  @override
+  String get chooseFreewiseBook => 'Tria el llibre de FreeWise';
+
+  @override
+  String get viewAnnotations => 'Mostra subratllats i notes';
+
+  @override
+  String get noAnnotations => 'Aquest llibre no té subratllats ni notes.';
+
+  @override
+  String get freewiseNotConfigured => 'Configura primer l’URL de FreeWise.';
+
+  @override
+  String get freewiseImportNoMatches =>
+      'L’arxiu no conté anotacions d’aquest llibre.';
+
+  @override
+  String freewiseImportPreview(int count) {
+    return 'S’han trobat $count anotacions d’aquest llibre. Es recuperaran els textos i les notes. Els subratllats visuals només es col·locaran quan la cita tinga una ubicació inequívoca en l’EPUB.';
+  }
+
+  @override
+  String freewiseImportResult(
+    int highlights,
+    int notes,
+    int visual,
+    int unlocated,
+  ) {
+    return 'Recuperats $highlights subratllats i $notes notes. Marques visibles: $visual. Sense ubicació exacta: $unlocated.';
+  }
+
+  @override
+  String get freewiseImportFailed =>
+      'No s’han pogut importar les anotacions. Comprova el CSV o la connexió amb FreeWise.';
 
   @override
   String get fullscreen => 'Pantalla completa';

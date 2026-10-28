@@ -154,6 +154,54 @@ abstract class AppLocalizations {
   /// **'Sincronización Nextcloud'**
   String get nextcloudSync;
 
+  /// No description provided for @nextcloudNeverSynced.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay una sincronización correcta.'**
+  String get nextcloudNeverSynced;
+
+  /// No description provided for @nextcloudLastSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Última sincronización correcta: {when}'**
+  String nextcloudLastSuccess(String when);
+
+  /// No description provided for @nextcloudLastFailure.
+  ///
+  /// In es, this message translates to:
+  /// **'Último error: {when} · {reason}'**
+  String nextcloudLastFailure(String when, String reason);
+
+  /// No description provided for @nextcloudErrorNetwork.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin conexión o tiempo de espera agotado'**
+  String get nextcloudErrorNetwork;
+
+  /// No description provided for @nextcloudErrorAuthentication.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa la contraseña de aplicación'**
+  String get nextcloudErrorAuthentication;
+
+  /// No description provided for @nextcloudErrorServer.
+  ///
+  /// In es, this message translates to:
+  /// **'El servidor no respondió correctamente'**
+  String get nextcloudErrorServer;
+
+  /// No description provided for @nextcloudErrorData.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos de sincronización no válidos'**
+  String get nextcloudErrorData;
+
+  /// No description provided for @nextcloudErrorUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Error de sincronización'**
+  String get nextcloudErrorUnknown;
+
   /// No description provided for @searchLibrary.
   ///
   /// In es, this message translates to:
@@ -789,6 +837,77 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo sincronizar con FreeWise: {error}'**
   String freewiseSyncFailed(String error);
+
+  /// No description provided for @importFreewiseServer.
+  ///
+  /// In es, this message translates to:
+  /// **'Recuperar de FreeWise'**
+  String get importFreewiseServer;
+
+  /// No description provided for @importFreewiseCsv.
+  ///
+  /// In es, this message translates to:
+  /// **'Importar CSV de FreeWise'**
+  String get importFreewiseCsv;
+
+  /// No description provided for @restoreAnnotations.
+  ///
+  /// In es, this message translates to:
+  /// **'Recuperar anotaciones'**
+  String get restoreAnnotations;
+
+  /// No description provided for @chooseFreewiseBook.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige el libro de FreeWise'**
+  String get chooseFreewiseBook;
+
+  /// No description provided for @viewAnnotations.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver subrayados y notas'**
+  String get viewAnnotations;
+
+  /// No description provided for @noAnnotations.
+  ///
+  /// In es, this message translates to:
+  /// **'Este libro no tiene subrayados ni notas.'**
+  String get noAnnotations;
+
+  /// No description provided for @freewiseNotConfigured.
+  ///
+  /// In es, this message translates to:
+  /// **'Configura primero la URL de FreeWise.'**
+  String get freewiseNotConfigured;
+
+  /// No description provided for @freewiseImportNoMatches.
+  ///
+  /// In es, this message translates to:
+  /// **'El archivo no contiene anotaciones de este libro.'**
+  String get freewiseImportNoMatches;
+
+  /// No description provided for @freewiseImportPreview.
+  ///
+  /// In es, this message translates to:
+  /// **'Se han encontrado {count} anotaciones de este libro. Se recuperarán los textos y las notas. Los subrayados visuales solo se colocarán cuando la cita tenga una ubicación inequívoca en el EPUB.'**
+  String freewiseImportPreview(int count);
+
+  /// No description provided for @freewiseImportResult.
+  ///
+  /// In es, this message translates to:
+  /// **'Recuperados {highlights} subrayados y {notes} notas. Marcas visibles: {visual}. Sin ubicación exacta: {unlocated}.'**
+  String freewiseImportResult(
+    int highlights,
+    int notes,
+    int visual,
+    int unlocated,
+  );
+
+  /// No description provided for @freewiseImportFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron importar las anotaciones. Comprueba el CSV o la conexión con FreeWise.'**
+  String get freewiseImportFailed;
 
   /// No description provided for @fullscreen.
   ///

@@ -39,6 +39,35 @@ class AppLocalizationsEs extends AppLocalizations {
   String get nextcloudSync => 'Sincronización Nextcloud';
 
   @override
+  String get nextcloudNeverSynced => 'Aún no hay una sincronización correcta.';
+
+  @override
+  String nextcloudLastSuccess(String when) {
+    return 'Última sincronización correcta: $when';
+  }
+
+  @override
+  String nextcloudLastFailure(String when, String reason) {
+    return 'Último error: $when · $reason';
+  }
+
+  @override
+  String get nextcloudErrorNetwork => 'Sin conexión o tiempo de espera agotado';
+
+  @override
+  String get nextcloudErrorAuthentication =>
+      'Revisa la contraseña de aplicación';
+
+  @override
+  String get nextcloudErrorServer => 'El servidor no respondió correctamente';
+
+  @override
+  String get nextcloudErrorData => 'Datos de sincronización no válidos';
+
+  @override
+  String get nextcloudErrorUnknown => 'Error de sincronización';
+
+  @override
   String get searchLibrary => 'Buscar en la biblioteca';
 
   @override
@@ -397,6 +426,50 @@ class AppLocalizationsEs extends AppLocalizations {
   String freewiseSyncFailed(String error) {
     return 'No se pudo sincronizar con FreeWise: $error';
   }
+
+  @override
+  String get importFreewiseServer => 'Recuperar de FreeWise';
+
+  @override
+  String get importFreewiseCsv => 'Importar CSV de FreeWise';
+
+  @override
+  String get restoreAnnotations => 'Recuperar anotaciones';
+
+  @override
+  String get chooseFreewiseBook => 'Elige el libro de FreeWise';
+
+  @override
+  String get viewAnnotations => 'Ver subrayados y notas';
+
+  @override
+  String get noAnnotations => 'Este libro no tiene subrayados ni notas.';
+
+  @override
+  String get freewiseNotConfigured => 'Configura primero la URL de FreeWise.';
+
+  @override
+  String get freewiseImportNoMatches =>
+      'El archivo no contiene anotaciones de este libro.';
+
+  @override
+  String freewiseImportPreview(int count) {
+    return 'Se han encontrado $count anotaciones de este libro. Se recuperarán los textos y las notas. Los subrayados visuales solo se colocarán cuando la cita tenga una ubicación inequívoca en el EPUB.';
+  }
+
+  @override
+  String freewiseImportResult(
+    int highlights,
+    int notes,
+    int visual,
+    int unlocated,
+  ) {
+    return 'Recuperados $highlights subrayados y $notes notas. Marcas visibles: $visual. Sin ubicación exacta: $unlocated.';
+  }
+
+  @override
+  String get freewiseImportFailed =>
+      'No se pudieron importar las anotaciones. Comprueba el CSV o la conexión con FreeWise.';
 
   @override
   String get fullscreen => 'Pantalla completa';

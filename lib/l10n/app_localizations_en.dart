@@ -39,6 +39,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextcloudSync => 'Nextcloud sync';
 
   @override
+  String get nextcloudNeverSynced => 'No successful sync yet.';
+
+  @override
+  String nextcloudLastSuccess(String when) {
+    return 'Last successful sync: $when';
+  }
+
+  @override
+  String nextcloudLastFailure(String when, String reason) {
+    return 'Last error: $when · $reason';
+  }
+
+  @override
+  String get nextcloudErrorNetwork => 'Offline or connection timed out';
+
+  @override
+  String get nextcloudErrorAuthentication => 'Check the app password';
+
+  @override
+  String get nextcloudErrorServer => 'The server did not respond correctly';
+
+  @override
+  String get nextcloudErrorData => 'Invalid sync data';
+
+  @override
+  String get nextcloudErrorUnknown => 'Sync error';
+
+  @override
   String get searchLibrary => 'Search library';
 
   @override
@@ -396,6 +424,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String freewiseSyncFailed(String error) {
     return 'Could not sync with FreeWise: $error';
   }
+
+  @override
+  String get importFreewiseServer => 'Restore from FreeWise';
+
+  @override
+  String get importFreewiseCsv => 'Import FreeWise CSV';
+
+  @override
+  String get restoreAnnotations => 'Restore annotations';
+
+  @override
+  String get chooseFreewiseBook => 'Choose the FreeWise book';
+
+  @override
+  String get viewAnnotations => 'View highlights and notes';
+
+  @override
+  String get noAnnotations => 'This book has no highlights or notes.';
+
+  @override
+  String get freewiseNotConfigured => 'Set up the FreeWise URL first.';
+
+  @override
+  String get freewiseImportNoMatches =>
+      'This file has no annotations for this book.';
+
+  @override
+  String freewiseImportPreview(int count) {
+    return 'Found $count annotations for this book. Text and notes will be restored. Visual highlights will be placed only when a quote has an unambiguous location in the EPUB.';
+  }
+
+  @override
+  String freewiseImportResult(
+    int highlights,
+    int notes,
+    int visual,
+    int unlocated,
+  ) {
+    return 'Restored $highlights highlights and $notes notes. Visible marks: $visual. Without an exact location: $unlocated.';
+  }
+
+  @override
+  String get freewiseImportFailed =>
+      'Could not import annotations. Check the CSV or the FreeWise connection.';
 
   @override
   String get fullscreen => 'Full screen';
