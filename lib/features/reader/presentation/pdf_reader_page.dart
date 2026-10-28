@@ -109,6 +109,26 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     if (_textMode) unawaited(_loadTextPage(page));
   }
 
+  void _onPdfTap(
+    TapUpDetails details,
+    double width,
+    pdf.PdfViewerHandleLinkTap handleLinkTap,
+  ) {
+    final hadSelection = _selections.isNotEmpty;
+    if (handleLinkTap(details.localPosition) || hadSelection) return;
+    if (!_controller.isReady) return;
+    final x = details.localPosition.dx;
+    final offset = x < width / 3
+        ? -1
+        : x > width * 2 / 3
+        ? 1
+        : 0;
+    if (offset == 0) return;
+    final target = _currentPage + offset;
+    if (target < 1 || target > _controller.pageCount) return;
+    unawaited(_controller.goToPage(pageNumber: target));
+  }
+
   Future<void> _toggleTextMode() async {
     if (!_controller.isReady) return;
     setState(() {
@@ -527,6 +547,16 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                   onPageChanged: _onPageChanged,
                   onTextSelectionChange: _onSelectionChanged,
                   pageOverlaysBuilder: _overlays,
+                  viewerOverlayBuilder: (context, size, handleLinkTap) => [
+                    GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTapUp: (details) =>
+                          _onPdfTap(details, size.width, handleLinkTap),
+                      child: IgnorePointer(
+                        child: SizedBox.fromSize(size: size),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (_textMode) Positioned.fill(child: _buildTextView()),

@@ -16,7 +16,9 @@ En marcha:
   sobre las páginas y se sincronizan automáticamente con Nextcloud por hash del
   archivo cuando está configurado; el botón de sincronización de la biblioteca
   también las incluye. Una nota de página permite anotar PDF sin
-  texto seleccionable.
+  texto seleccionable. En la vista PDF, un toque en el tercio derecho avanza
+  una página y un toque en el tercio izquierdo retrocede; el tercio central
+  permite interactuar con el documento sin cambiar de página.
   El lector PDF ofrece una vista alternativa de texto adaptable: extrae el
   contenido de cada página, elimina los saltos de línea del formato fijo y
   aplica el tamaño, interlineado y tema de lectura. Se puede volver a la página
