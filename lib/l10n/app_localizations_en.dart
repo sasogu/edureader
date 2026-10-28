@@ -397,6 +397,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addNote => 'Add note';
 
   @override
+  String get pdfTextView => 'Text view';
+
+  @override
+  String get pdfPageView => 'PDF view';
+
+  @override
+  String get pdfNoText =>
+      'This page has no extractable text. Scanned pages need OCR for this view.';
+
+  @override
   String get epubFootnote => 'Book note';
 
   @override

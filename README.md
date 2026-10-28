@@ -17,6 +17,10 @@ En marcha:
   archivo cuando está configurado; el botón de sincronización de la biblioteca
   también las incluye. Una nota de página permite anotar PDF sin
   texto seleccionable.
+  El lector PDF ofrece una vista alternativa de texto adaptable: extrae el
+  contenido de cada página, elimina los saltos de línea del formato fijo y
+  aplica el tamaño, interlineado y tema de lectura. Se puede volver a la página
+  PDF correspondiente con un toque. Los escaneos necesitan OCR para esta vista.
 - Apertura de EPUB desde Archivos en iPadOS mediante «Compartir» → EduReader;
   el archivo se importa a la biblioteca y se abre en el lector.
 - Parseo de EPUB y apertura en el lector.

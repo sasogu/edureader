@@ -12,6 +12,7 @@ import '../../library/data/pdf_storage.dart';
 import '../data/nextcloud_sync.dart';
 import '../data/pdf_annotation_storage.dart';
 import '../data/pdf_selection.dart';
+import '../data/pdf_text_format.dart';
 import '../data/readium_storage.dart';
 import 'highlight_color_dialog.dart';
 
@@ -41,6 +42,13 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   bool _saving = false;
   late String _annotationKey;
   String? _error;
+  bool _textMode = false;
+  bool _textLoading = false;
+  int _textPage = 1;
+  int _textRequest = 0;
+  String? _pageText;
+  String? _textError;
+  final Map<int, String> _textCache = {};
 
   String get _pageKey => 'pdf_page_${widget.document.id}';
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -94,9 +102,62 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   }
 
   void _onPageChanged(int? page) {
-    if (page == null) return;
-    _currentPage = page;
+    if (page == null || !mounted) return;
+    setState(() => _currentPage = page);
     unawaited(_savePage(page));
+    if (_textMode) unawaited(_loadTextPage(page));
+  }
+
+  Future<void> _toggleTextMode() async {
+    if (!_controller.isReady) return;
+    setState(() {
+      _textMode = !_textMode;
+      _selections = [];
+    });
+    if (_textMode) await _loadTextPage(_currentPage);
+  }
+
+  Future<void> _loadTextPage(int pageNumber) async {
+    final request = ++_textRequest;
+    if (!mounted) return;
+    final cached = _textCache[pageNumber];
+    setState(() {
+      _textPage = pageNumber;
+      _pageText = cached;
+      _textError = null;
+      _textLoading = cached == null;
+    });
+    if (cached != null) return;
+    try {
+      final text = await _controller.useDocument<String>((document) async {
+        if (pageNumber < 1 || pageNumber > document.pages.length) return '';
+        final page = await document.pages[pageNumber - 1].loadText();
+        return reflowPdfText(page.fullText);
+      });
+      if (text == null) throw StateError('PDF not available');
+      _textCache[pageNumber] = text;
+      if (mounted && request == _textRequest) {
+        setState(() {
+          _pageText = text;
+          _textLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted && request == _textRequest) {
+        setState(() {
+          _textError = error.toString();
+          _textLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _moveTextPage(int offset) async {
+    if (!_controller.isReady) return;
+    final target = (_textPage + offset).clamp(1, _controller.pageCount).toInt();
+    if (target == _textPage) return;
+    await _controller.goToPage(pageNumber: target);
+    if (mounted && _textPage != target) await _loadTextPage(target);
   }
 
   Future<void> _addPageNote() async {
@@ -321,11 +382,124 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     );
   }
 
+  Widget _buildTextView() => ListenableBuilder(
+    listenable: widget.settings,
+    builder: (context, _) {
+      final settings = widget.settings;
+      final textColor = settings.darkMode
+          ? const Color(0xffeeeeee)
+          : settings.sepiaMode
+          ? const Color(0xff493d2b)
+          : const Color(0xff202124);
+      final pageAnnotations = _annotations
+          .where((item) => !item.deleted && item.pageIndex == _textPage - 1)
+          .toList();
+      return ColoredBox(
+        color: settings.readerBackgroundColor,
+        child: Column(
+          children: [
+            Expanded(
+              child: _textLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _textError != null
+                  ? Center(child: Text(_l10n.readerError(_textError!)))
+                  : SingleChildScrollView(
+                      key: ValueKey(_textPage),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24 * settings.pageMargins,
+                        vertical: 28 * settings.pageMargins,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 760),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PDF · $_textPage / ${_controller.pageCount}',
+                                style: TextStyle(
+                                  color: textColor.withValues(alpha: 0.65),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              SelectableText(
+                                _pageText?.isNotEmpty == true
+                                    ? _pageText!
+                                    : _l10n.pdfNoText,
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 18 * settings.fontScale,
+                                  height: settings.lineHeight,
+                                ),
+                                textAlign: settings.justifyText
+                                    ? TextAlign.justify
+                                    : TextAlign.start,
+                              ),
+                              if (pageAnnotations.isNotEmpty) ...[
+                                const SizedBox(height: 28),
+                                Text(
+                                  _l10n.viewAnnotations,
+                                  style: TextStyle(color: textColor),
+                                ),
+                                for (final item in pageAnnotations)
+                                  ListTile(
+                                    title: Text(
+                                      item.text.isEmpty
+                                          ? 'PDF · $_textPage'
+                                          : item.text,
+                                    ),
+                                    subtitle: item.note?.isNotEmpty == true
+                                        ? Text(item.note!)
+                                        : null,
+                                  ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+            SafeArea(
+              top: false,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).previousPageTooltip,
+                    onPressed: _textPage > 1 ? () => _moveTextPage(-1) : null,
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  Text('$_textPage / ${_controller.pageCount}'),
+                  IconButton(
+                    tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+                    onPressed: _textPage < _controller.pageCount
+                        ? () => _moveTextPage(1)
+                        : null,
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Text(widget.document.title),
       actions: [
+        IconButton(
+          tooltip: _textMode ? _l10n.pdfPageView : _l10n.pdfTextView,
+          icon: Icon(
+            _textMode ? Icons.picture_as_pdf_outlined : Icons.article_outlined,
+          ),
+          onPressed: _loading || !_controller.isReady ? null : _toggleTextMode,
+        ),
         IconButton(
           tooltip: _l10n.addNote,
           icon: const Icon(Icons.note_add_outlined),
@@ -355,7 +529,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                   pageOverlaysBuilder: _overlays,
                 ),
               ),
-              if (_selections.isNotEmpty)
+              if (_textMode) Positioned.fill(child: _buildTextView()),
+              if (!_textMode && _selections.isNotEmpty)
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: SafeArea(

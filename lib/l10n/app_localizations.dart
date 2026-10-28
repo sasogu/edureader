@@ -790,6 +790,24 @@ abstract class AppLocalizations {
   /// **'Añadir nota'**
   String get addNote;
 
+  /// No description provided for @pdfTextView.
+  ///
+  /// In es, this message translates to:
+  /// **'Vista de texto'**
+  String get pdfTextView;
+
+  /// No description provided for @pdfPageView.
+  ///
+  /// In es, this message translates to:
+  /// **'Vista PDF'**
+  String get pdfPageView;
+
+  /// No description provided for @pdfNoText.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta página no contiene texto extraíble. Si es un escaneo, necesita OCR para leerse en esta vista.'**
+  String get pdfNoText;
+
   /// No description provided for @epubFootnote.
   ///
   /// In es, this message translates to:

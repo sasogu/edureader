@@ -402,6 +402,16 @@ class AppLocalizationsCa extends AppLocalizations {
   String get addNote => 'Afegeix una nota';
 
   @override
+  String get pdfTextView => 'Vista de text';
+
+  @override
+  String get pdfPageView => 'Vista PDF';
+
+  @override
+  String get pdfNoText =>
+      'Esta pàgina no conté text extraïble. Si és un escaneig, necessita OCR per a llegir-se en esta vista.';
+
+  @override
   String get epubFootnote => 'Nota del llibre';
 
   @override
