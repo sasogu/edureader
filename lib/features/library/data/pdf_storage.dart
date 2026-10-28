@@ -1,20 +1,24 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../reader/data/readium_storage.dart';
 
 class PdfDocument {
-  const PdfDocument({
-    required this.id,
-    required this.path,
-    required this.title,
-  });
+  PdfDocument({required this.id, required this.path, required this.title});
 
   final String id;
   final String path;
   final String title;
+  late final Future<String> _hash = sha256
+      .bind(File(path).openRead())
+      .first
+      .then((value) => value.toString());
+
+  /// Stable identity across reimports and devices, even if iOS changes paths.
+  Future<String> contentHash() => _hash;
 }
 
 /// Keeps PDFs in the same private documents directory as EPUBs, but in a

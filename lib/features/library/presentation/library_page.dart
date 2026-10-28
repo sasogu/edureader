@@ -154,7 +154,10 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Future<void> _openPdf(PdfDocument document) => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => PdfReaderPage(document: document)),
+    MaterialPageRoute<void>(
+      builder: (_) =>
+          PdfReaderPage(document: document, settings: widget.settings),
+    ),
   );
 
   Future<void> _deletePdf(PdfDocument document) async {
@@ -516,6 +519,9 @@ class _LibraryPageState extends State<LibraryPage> {
       });
       final books = await _storage.loadBooks();
       final result = await _nextcloud.syncLibrary(books);
+      for (final pdf in _pdfs) {
+        await _nextcloud.syncPdfAnnotations(pdf);
+      }
       final refreshedBooks = await _storage.loadBooks();
       final refreshedTags = <String, List<String>>{};
       for (final book in refreshedBooks) {

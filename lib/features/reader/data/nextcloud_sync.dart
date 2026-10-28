@@ -11,7 +11,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../library/data/library_storage.dart';
+import '../../library/data/pdf_storage.dart';
 import 'annotation_storage.dart';
+import 'pdf_annotation_storage.dart';
 import 'nextcloud_sync_status.dart';
 import 'readium_storage.dart';
 
@@ -76,6 +78,7 @@ class NextcloudSync {
   static const _annotationsDirectory = 'annotations';
 
   final AnnotationStorage _annotations = AnnotationStorage();
+  final PdfAnnotationStorage _pdfAnnotations = PdfAnnotationStorage();
   final http.Client _client;
   final NextcloudSecretStore _secretStore;
   final LibraryStorage _library;
@@ -323,6 +326,73 @@ class NextcloudSync {
     ),
     shouldRecordSuccess: () => !(isCancelled?.call() ?? false),
   );
+
+  /// Syncs PDF annotations by file hash. The PDF itself can be imported on
+  /// each device; annotations remain associated with identical bytes.
+  Future<void> syncPdfAnnotations(PdfDocument document) =>
+      _serialized(() => _syncPdfAnnotations(document));
+
+  Future<void> _syncPdfAnnotations(PdfDocument document) async {
+    final connection = await _requireConnection();
+    if (!await File(document.path).exists()) return;
+    final hash = await document.contentHash();
+    final path = 'pdf-annotations/$hash.json';
+    final response = await _client.send(
+      http.Request('GET', _davUri(connection, path))
+        ..headers.addAll(_headers(connection)),
+    );
+    List<PdfAnnotation> remote = [];
+    if (response.statusCode == 200) {
+      final body =
+          jsonDecode(utf8.decode(await response.stream.toBytes()))
+              as Map<String, dynamic>;
+      if (body['schemaVersion'] != 1 ||
+          body['type'] != 'pdf' ||
+          body['sha256'] != hash ||
+          body['annotations'] is! List) {
+        throw const FormatException(
+          'El archivo remoto de notas PDF no es compatible.',
+        );
+      }
+      remote = (body['annotations'] as List<dynamic>)
+          .map(
+            (item) =>
+                PdfAnnotation.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+    } else if (response.statusCode == 404) {
+      await response.stream.drain<void>();
+    } else {
+      await response.stream.drain<void>();
+      throw StateError(
+        'No se pudieron leer las notas PDF (HTTP ${response.statusCode}).',
+      );
+    }
+
+    await _pdfAnnotations.merge(hash, remote);
+    final merged = await _pdfAnnotations.load(hash);
+    final remoteById = {for (final item in remote) item.id: item};
+    final needsUpload = merged.any((item) {
+      final old = remoteById[item.id];
+      return old == null || item.modifiedAt.isAfter(old.modifiedAt);
+    });
+    if (!needsUpload) return;
+    await _ensureCollection(connection, '');
+    await _ensureCollection(connection, 'pdf-annotations');
+    final upload = await _client.send(
+      http.Request('PUT', _davUri(connection, path))
+        ..headers.addAll(_headers(connection))
+        ..headers['Content-Type'] = 'application/json; charset=utf-8'
+        ..body = jsonEncode({
+          'schemaVersion': 1,
+          'type': 'pdf',
+          'sha256': hash,
+          'annotations': merged.map((item) => item.toJson()).toList(),
+        })
+        ..followRedirects = false,
+    );
+    await _requireStatus(upload, const {200, 201, 204}, 'guardar notas PDF');
+  }
 
   Future<bool> _syncBook(
     EpubBook book, {
