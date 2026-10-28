@@ -871,66 +871,68 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       _showReaderSheet<_ReaderMenuAction>(
         isScrollControlled: false,
         constraints: const BoxConstraints(maxWidth: 560),
-        builder: (sheetContext) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(_l10n.readerMore),
-              trailing: IconButton(
-                tooltip: _l10n.close,
-                onPressed: () => Navigator.of(sheetContext).pop(),
-                icon: const Icon(Icons.close),
+        builder: (sheetContext) => SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(_l10n.readerMore),
+                trailing: IconButton(
+                  tooltip: _l10n.close,
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  icon: const Icon(Icons.close),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.volume_up_outlined),
-              title: Text(_l10n.readAloud),
-              onTap: () =>
-                  Navigator.of(sheetContext).pop(_ReaderMenuAction.readAloud),
-            ),
-            ListTile(
-              leading: const Icon(Icons.linear_scale),
-              title: Text(_l10n.goToPosition),
-              onTap: () => Navigator.of(
-                sheetContext,
-              ).pop(_ReaderMenuAction.goToProgress),
-            ),
-            ListTile(
-              leading: const Icon(Icons.ios_share_outlined),
-              title: Text(_l10n.exportAnnotations),
-              onTap: () => Navigator.of(
-                sheetContext,
-              ).pop(_ReaderMenuAction.exportAnnotations),
-            ),
-            ListTile(
-              leading: const Icon(Icons.cloud_upload_outlined),
-              title: Text(_l10n.syncFreewise),
-              onTap: () => Navigator.of(
-                sheetContext,
-              ).pop(_ReaderMenuAction.syncAnnotations),
-            ),
-            ListTile(
-              leading: const Icon(Icons.cloud_download_outlined),
-              title: Text(_l10n.importFreewiseServer),
-              onTap: () => Navigator.of(
-                sheetContext,
-              ).pop(_ReaderMenuAction.importFreewiseServer),
-            ),
-            ListTile(
-              leading: const Icon(Icons.upload_file_outlined),
-              title: Text(_l10n.importFreewiseCsv),
-              onTap: () => Navigator.of(
-                sheetContext,
-              ).pop(_ReaderMenuAction.importFreewiseCsv),
-            ),
-            ListTile(
-              leading: const Icon(Icons.format_quote_outlined),
-              title: Text(_l10n.viewAnnotations),
-              onTap: () => Navigator.of(
-                sheetContext,
-              ).pop(_ReaderMenuAction.viewAnnotations),
-            ),
-          ],
+              ListTile(
+                leading: const Icon(Icons.volume_up_outlined),
+                title: Text(_l10n.readAloud),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_ReaderMenuAction.readAloud),
+              ),
+              ListTile(
+                leading: const Icon(Icons.linear_scale),
+                title: Text(_l10n.goToPosition),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_ReaderMenuAction.goToProgress),
+              ),
+              ListTile(
+                leading: const Icon(Icons.ios_share_outlined),
+                title: Text(_l10n.exportAnnotations),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_ReaderMenuAction.exportAnnotations),
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_upload_outlined),
+                title: Text(_l10n.syncFreewise),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_ReaderMenuAction.syncAnnotations),
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_download_outlined),
+                title: Text(_l10n.importFreewiseServer),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_ReaderMenuAction.importFreewiseServer),
+              ),
+              ListTile(
+                leading: const Icon(Icons.upload_file_outlined),
+                title: Text(_l10n.importFreewiseCsv),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_ReaderMenuAction.importFreewiseCsv),
+              ),
+              ListTile(
+                leading: const Icon(Icons.format_quote_outlined),
+                title: Text(_l10n.viewAnnotations),
+                onTap: () => Navigator.of(
+                  sheetContext,
+                ).pop(_ReaderMenuAction.viewAnnotations),
+              ),
+            ],
+          ),
         ),
       ),
     );
