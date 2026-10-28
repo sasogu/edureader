@@ -126,4 +126,13 @@ void main() {
     final entries = importer.parseForBook(book, csv, sourceTitle: 'Otro libro');
     expect(entries.single.text, 'Otro texto');
   });
+
+  test('accepts the UTF-8 BOM and CRLF used by CSV exports', () {
+    const exported =
+        '\uFEFF"Highlight","Book Title","Note"\r\n'
+        '"Cita","Mi libro","Nota"\r\n';
+    final entries = FreeWiseImporter().parseForBook(book, exported);
+    expect(entries.single.text, 'Cita');
+    expect(entries.single.note, 'Nota');
+  });
 }
