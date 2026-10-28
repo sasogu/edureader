@@ -4,13 +4,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_readium/flutter_readium.dart' show DecorationStyle;
 import 'package:pdfrx/pdfrx.dart' as pdf;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/settings/app_settings.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../library/data/pdf_storage.dart';
 import '../data/nextcloud_sync.dart';
 import '../data/pdf_annotation_storage.dart';
+import '../data/pdf_reading_position.dart';
 import '../data/pdf_selection.dart';
 import '../data/pdf_text_format.dart';
 import '../data/readium_storage.dart';
@@ -50,7 +50,6 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   String? _textError;
   final Map<int, String> _textCache = {};
 
-  String get _pageKey => 'pdf_page_${widget.document.id}';
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
@@ -62,8 +61,10 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   Future<void> _initialize() async {
     try {
       _annotationKey = await widget.document.contentHash();
-      final prefs = await SharedPreferences.getInstance();
-      final savedPage = prefs.getInt(_pageKey);
+      final savedPage = await PdfReadingPosition.load(
+        _annotationKey,
+        widget.document.id,
+      );
       final oldLocator = savedPage == null
           ? await ReadiumStorage().loadLocator(widget.document.id)
           : null;
@@ -179,8 +180,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   }
 
   Future<void> _savePage(int page) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_pageKey, page);
+    await PdfReadingPosition.save(_annotationKey, page);
   }
 
   void _onSelectionChanged(List<pdf.PdfTextRanges> selections) {

@@ -153,12 +153,15 @@ class _LibraryPageState extends State<LibraryPage> {
     }
   }
 
-  Future<void> _openPdf(PdfDocument document) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) =>
-          PdfReaderPage(document: document, settings: widget.settings),
-    ),
-  );
+  Future<void> _openPdf(PdfDocument document) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            PdfReaderPage(document: document, settings: widget.settings),
+      ),
+    );
+    if (mounted) await _loadLibrary();
+  }
 
   Future<void> _deletePdf(PdfDocument document) async {
     final l10n = AppLocalizations.of(context);
@@ -891,34 +894,16 @@ class _LibraryPageState extends State<LibraryPage> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : hasBooks
-                  ? Column(
-                      children: [
-                        if (_pdfs.isNotEmpty)
-                          _PdfLibrarySection(
-                            documents: _pdfs,
-                            onOpen: _openPdf,
-                            onDelete: _deletePdf,
-                          ),
-                        if (_pdfs.isNotEmpty) const SizedBox(height: 12),
-                        Expanded(
-                          child: _books.isNotEmpty
-                              ? _BookList(
-                                  books: _books,
-                                  bookTags: _bookTags,
-                                  onOpenBook: _openStoredBook,
-                                  onDeleteBook: _deleteBook,
-                                  onSaveBookTags: _saveBookTags,
-                                  onPickEpub: _pickEpub,
-                                )
-                              : Center(
-                                  child: FilledButton.icon(
-                                    onPressed: _pickEpub,
-                                    icon: const Icon(Icons.file_open_outlined),
-                                    label: Text(l10n.chooseEpub),
-                                  ),
-                                ),
-                        ),
-                      ],
+                  ? _BookList(
+                      books: _books,
+                      pdfs: _pdfs,
+                      bookTags: _bookTags,
+                      onOpenBook: _openStoredBook,
+                      onDeleteBook: _deleteBook,
+                      onOpenPdf: _openPdf,
+                      onDeletePdf: _deletePdf,
+                      onSaveBookTags: _saveBookTags,
+                      onPickEpub: _pickEpub,
                     )
                   : _EmptyLibrary(onPickEpub: _pickEpub),
             ),
@@ -973,71 +958,28 @@ class _EmptyLibrary extends StatelessWidget {
   }
 }
 
-class _PdfLibrarySection extends StatelessWidget {
-  const _PdfLibrarySection({
-    required this.documents,
-    required this.onOpen,
-    required this.onDelete,
-  });
-
-  final List<PdfDocument> documents;
-  final ValueChanged<PdfDocument> onOpen;
-  final ValueChanged<PdfDocument> onDelete;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: (66 + documents.length * 56).clamp(100, 240).toDouble(),
-    child: Card(
-      child: Column(
-        children: [
-          const ListTile(
-            title: Text('PDF'),
-            leading: Icon(Icons.picture_as_pdf_outlined),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (context, index) {
-                final document = documents[index];
-                return ListTile(
-                  dense: true,
-                  title: Text(
-                    document.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () => onOpen(document),
-                  trailing: IconButton(
-                    tooltip: AppLocalizations.of(context).deleteBook,
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => onDelete(document),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 enum _LibrarySort { recentlyAdded, title, author }
 
 class _BookList extends StatefulWidget {
   const _BookList({
     required this.books,
+    required this.pdfs,
     required this.bookTags,
     required this.onOpenBook,
     required this.onDeleteBook,
+    required this.onOpenPdf,
+    required this.onDeletePdf,
     required this.onSaveBookTags,
     required this.onPickEpub,
   });
 
   final List<EpubBook> books;
+  final List<PdfDocument> pdfs;
   final Map<String, List<String>> bookTags;
   final ValueChanged<EpubBook> onOpenBook;
   final ValueChanged<EpubBook> onDeleteBook;
+  final ValueChanged<PdfDocument> onOpenPdf;
+  final ValueChanged<PdfDocument> onDeletePdf;
   final void Function(EpubBook, List<String>) onSaveBookTags;
   final VoidCallback onPickEpub;
 
@@ -1161,31 +1103,48 @@ class _BookListState extends State<_BookList> {
     widget.onSaveBookTags(book, updatedTags);
   }
 
-  List<EpubBook> get _visibleBooks {
+  String _title(Object item) =>
+      item is PdfDocument ? item.title : (item as EpubBook).metadata.title;
+
+  String _author(Object item) =>
+      item is PdfDocument ? '' : (item as EpubBook).metadata.creator ?? '';
+
+  String _id(Object item) =>
+      item is PdfDocument ? item.id : (item as EpubBook).id;
+
+  DateTime _addedAt(Object item) {
+    if (item is EpubBook) return item.createdAt;
+    final name = p.basename((item as PdfDocument).id);
+    final micros = int.tryParse(name.split('_').first);
+    return micros == null
+        ? DateTime.fromMillisecondsSinceEpoch(0)
+        : DateTime.fromMicrosecondsSinceEpoch(micros);
+  }
+
+  List<Object> get _visibleBooks {
     final query = _query.trim().toLowerCase();
-    final filtered = widget.books.where((book) {
+    final filtered = <Object>[...widget.books, ...widget.pdfs].where((book) {
       final matchesSearch =
           query.isEmpty ||
-          book.metadata.title.toLowerCase().contains(query) ||
-          (book.metadata.creator ?? '').toLowerCase().contains(query);
-      final tags = widget.bookTags[book.id] ?? const <String>[];
-      final matchesTags = _selectedTags.every(tags.contains);
+          _title(book).toLowerCase().contains(query) ||
+          _author(book).toLowerCase().contains(query);
+      final tags = widget.bookTags[_id(book)] ?? const <String>[];
+      final matchesTags =
+          book is PdfDocument || _selectedTags.every(tags.contains);
       return matchesSearch && matchesTags;
     }).toList();
     switch (_sort) {
       case _LibrarySort.recentlyAdded:
+        filtered.sort((a, b) => _addedAt(b).compareTo(_addedAt(a)));
         break;
       case _LibrarySort.title:
         filtered.sort(
-          (a, b) => a.metadata.title.toLowerCase().compareTo(
-            b.metadata.title.toLowerCase(),
-          ),
+          (a, b) => _title(a).toLowerCase().compareTo(_title(b).toLowerCase()),
         );
       case _LibrarySort.author:
         filtered.sort(
-          (a, b) => (a.metadata.creator ?? '').toLowerCase().compareTo(
-            (b.metadata.creator ?? '').toLowerCase(),
-          ),
+          (a, b) =>
+              _author(a).toLowerCase().compareTo(_author(b).toLowerCase()),
         );
     }
     return filtered;
@@ -1206,9 +1165,11 @@ class _BookListState extends State<_BookList> {
             ),
             const Spacer(),
             Semantics(
-              label: l10n.booksCount(widget.books.length),
+              label: l10n.booksCount(widget.books.length + widget.pdfs.length),
               child: ExcludeSemantics(
-                child: Text(l10n.booksCount(widget.books.length)),
+                child: Text(
+                  l10n.booksCount(widget.books.length + widget.pdfs.length),
+                ),
               ),
             ),
           ],
@@ -1323,14 +1284,18 @@ class _BookListState extends State<_BookList> {
                             ),
                         itemCount: visibleBooks.length,
                         itemBuilder: (context, index) =>
-                            _bookTile(visibleBooks[index]),
+                            visibleBooks[index] is PdfDocument
+                            ? _pdfTile(visibleBooks[index] as PdfDocument)
+                            : _bookTile(visibleBooks[index] as EpubBook),
                       );
                     }
                     return ListView.builder(
                       padding: const EdgeInsets.only(bottom: 8),
                       itemCount: visibleBooks.length,
                       itemBuilder: (context, index) =>
-                          _bookCard(visibleBooks[index]),
+                          visibleBooks[index] is PdfDocument
+                          ? _pdfCard(visibleBooks[index] as PdfDocument)
+                          : _bookCard(visibleBooks[index] as EpubBook),
                     );
                   },
                 ),
@@ -1347,6 +1312,84 @@ class _BookListState extends State<_BookList> {
   Widget _cover(EpubBook book) => _BookCover(
     cover: _covers.coverFor(book.filePath ?? book.id),
     title: book.metadata.title,
+  );
+
+  Widget _pdfCover() => ColoredBox(
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    child: Center(
+      child: Icon(
+        Icons.picture_as_pdf_outlined,
+        size: 38,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    ),
+  );
+
+  Widget _pdfCard(PdfDocument document) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => widget.onOpenPdf(document),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            SizedBox(width: 56, height: 84, child: _pdfCover()),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                document.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const Text('PDF'),
+            IconButton(
+              tooltip: AppLocalizations.of(context).deleteBook,
+              onPressed: () => widget.onDeletePdf(document),
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _pdfTile(PdfDocument document) => InkWell(
+    onTap: () => widget.onOpenPdf(document),
+    borderRadius: BorderRadius.circular(8),
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _pdfCover(),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Material(
+                    color: Theme.of(context).colorScheme.surface,
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      tooltip: AppLocalizations.of(context).deleteBook,
+                      onPressed: () => widget.onDeletePdf(document),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(document.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text('PDF', style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    ),
   );
 
   Widget _bookCard(EpubBook book) => Card(

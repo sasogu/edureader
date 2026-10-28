@@ -11,7 +11,7 @@ En marcha:
 - Proyecto Flutter para Android e iOS.
 - Biblioteca local persistente: los EPUB se copian al almacenamiento privado de la aplicación.
 - Selector de archivos EPUB.
-- Importación y lectura de PDF en iPad y Android. Se conserva la última página;
+- Importación y lectura de PDF en iPad y Android. Los PDF aparecen junto a los EPUB en la biblioteca y se conserva la última página incluso al volver a importar el mismo archivo;
   la selección de texto permite subrayar o añadir notas. Las marcas se dibujan
   sobre las páginas y se sincronizan automáticamente con Nextcloud por hash del
   archivo cuando está configurado; el botón de sincronización de la biblioteca
