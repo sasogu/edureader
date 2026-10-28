@@ -11,6 +11,8 @@ En marcha:
 - Proyecto Flutter para Android e iOS.
 - Biblioteca local persistente: los EPUB se copian al almacenamiento privado de la aplicación.
 - Selector de archivos EPUB.
+- Apertura de EPUB desde Archivos en iPadOS mediante «Compartir» → EduReader;
+  el archivo se importa a la biblioteca y se abre en el lector.
 - Parseo de EPUB y apertura en el lector.
 - Navegación por capítulos y controles básicos de lectura.
 - Tema Material 3 y estructura separada por funcionalidades.

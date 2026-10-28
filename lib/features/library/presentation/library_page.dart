@@ -12,6 +12,7 @@ import '../../reader/data/freewise_sync.dart';
 import '../../reader/data/nextcloud_sync.dart';
 import '../../reader/data/nextcloud_sync_status.dart';
 import '../data/cover_extractor.dart';
+import '../data/incoming_epub_service.dart';
 import '../data/library_storage.dart';
 import '../../reader/presentation/reader_page.dart';
 import '../../../l10n/app_localizations.dart';
@@ -32,6 +33,7 @@ class _LibraryPageState extends State<LibraryPage> {
   final FreeWiseSync _sync = FreeWiseSync();
   final NextcloudSync _nextcloud = NextcloudSync();
   final NextcloudSyncStatusStore _statusStore = NextcloudSyncStatusStore();
+  final IncomingEpubService _incomingEpubs = IncomingEpubService();
   final List<EpubBook> _books = [];
   final Map<String, List<String>> _bookTags = {};
   bool _isLoading = false;
@@ -44,7 +46,7 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   void initState() {
     super.initState();
-    _loadLibrary();
+    unawaited(_initializeLibrary());
     _syncStatusSubscription = _statusStore.changes.listen(
       (_) => _loadSyncStatus(),
     );
@@ -53,8 +55,14 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   void dispose() {
+    _incomingEpubs.dispose();
     _syncStatusSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _initializeLibrary() async {
+    await _loadLibrary();
+    if (mounted) await _incomingEpubs.start(_importIncomingEpub);
   }
 
   Future<void> _loadSyncStatus() async {
@@ -112,6 +120,13 @@ class _LibraryPageState extends State<LibraryPage> {
       return;
     }
 
+    await _importEpub(path);
+  }
+
+  Future<void> _importIncomingEpub(String path) =>
+      _importEpub(path, propagateError: true);
+
+  Future<void> _importEpub(String path, {bool propagateError = false}) async {
     setState(() => _isLoading = true);
     try {
       final book = await _storage.importBook(path);
@@ -126,9 +141,13 @@ class _LibraryPageState extends State<LibraryPage> {
 
       await _openBook(book);
     } catch (error) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      _showError(AppLocalizations.of(context).epubOpenFailed(error.toString()));
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showError(
+          AppLocalizations.of(context).epubOpenFailed(error.toString()),
+        );
+      }
+      if (propagateError) rethrow;
     }
   }
 
