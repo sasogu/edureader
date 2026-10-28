@@ -50,10 +50,15 @@ PODS:
   - flutter_secure_storage_darwin (10.0.0):
     - Flutter
     - FlutterMacOS
+  - integration_test (0.0.1):
+    - Flutter
   - Minizip (1.0.0)
   - package_info_plus (0.4.5):
     - Flutter
   - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - pdfrx (0.0.6):
     - Flutter
     - FlutterMacOS
   - ReadiumFuzi (4.0.0)
@@ -87,6 +92,8 @@ PODS:
     - FlutterMacOS
   - SwiftSoup (2.11.3)
   - SwiftyGif (5.4.5)
+  - url_launcher_ios (0.0.1):
+    - Flutter
   - wakelock_plus (0.0.1):
     - Flutter
   - webview_flutter_wkwebview (0.0.1):
@@ -98,15 +105,18 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_readium (from `.symlinks/plugins/flutter_readium/ios`)
   - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
+  - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
-  - ReadiumInternal (from `https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumInternal.podspec`)
-  - ReadiumNavigator (from `https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumNavigator.podspec`)
-  - ReadiumOPDS (from `https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumOPDS.podspec`)
-  - ReadiumShared (from `https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumShared.podspec`)
-  - ReadiumStreamer (from `https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumStreamer.podspec`)
+  - pdfrx (from `.symlinks/plugins/pdfrx/darwin`)
+  - ReadiumInternal (from `https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumInternal/3.9.0/ReadiumInternal.podspec`)
+  - ReadiumNavigator (from `https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumNavigator/3.9.0/ReadiumNavigator.podspec`)
+  - ReadiumOPDS (from `https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumOPDS/3.9.0/ReadiumOPDS.podspec`)
+  - ReadiumShared (from `https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumShared/3.9.0/ReadiumShared.podspec`)
+  - ReadiumStreamer (from `https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumStreamer/3.9.0/ReadiumStreamer.podspec`)
   - ReadiumZIPFoundation (from `https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumZIPFoundation/3.0.1/ReadiumZIPFoundation.podspec`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - wakelock_plus (from `.symlinks/plugins/wakelock_plus/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
@@ -131,24 +141,30 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_readium/ios"
   flutter_secure_storage_darwin:
     :path: ".symlinks/plugins/flutter_secure_storage_darwin/darwin"
+  integration_test:
+    :path: ".symlinks/plugins/integration_test/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  pdfrx:
+    :path: ".symlinks/plugins/pdfrx/darwin"
   ReadiumInternal:
-    :podspec: https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumInternal.podspec
+    :podspec: https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumInternal/3.9.0/ReadiumInternal.podspec
   ReadiumNavigator:
-    :podspec: https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumNavigator.podspec
+    :podspec: https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumNavigator/3.9.0/ReadiumNavigator.podspec
   ReadiumOPDS:
-    :podspec: https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumOPDS.podspec
+    :podspec: https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumOPDS/3.9.0/ReadiumOPDS.podspec
   ReadiumShared:
-    :podspec: https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumShared.podspec
+    :podspec: https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumShared/3.9.0/ReadiumShared.podspec
   ReadiumStreamer:
-    :podspec: https://raw.githubusercontent.com/readium/swift-toolkit/3.9.0/Support/CocoaPods/ReadiumStreamer.podspec
+    :podspec: https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumStreamer/3.9.0/ReadiumStreamer.podspec
   ReadiumZIPFoundation:
     :podspec: https://raw.githubusercontent.com/readium/podspecs/refs/heads/main/ReadiumZIPFoundation/3.0.1/ReadiumZIPFoundation.podspec
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+  url_launcher_ios:
+    :path: ".symlinks/plugins/url_launcher_ios/ios"
   wakelock_plus:
     :path: ".symlinks/plugins/wakelock_plus/ios"
   webview_flutter_wkwebview:
@@ -163,9 +179,11 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_readium: 8de113dbcb83268e6d978750cc9cb3cb24034732
   flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
   Minizip: 188cb3e39a1195c283ae03bf673d182596fefd0b
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
+  pdfrx: 310e84d01e06fd2af26e16507a0e48c27e99195c
   ReadiumFuzi: 888d023b862f524e314f85925c94768a501f05c0
   ReadiumInternal: 44ae41c0487eb56cd5bbeded3d8a6c86351fa0a0
   ReadiumNavigator: 3bac1f518748845913a9fbcf292cb8204aa460e5
@@ -177,9 +195,10 @@ SPEC CHECKSUMS:
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   SwiftSoup: 959c9ac70d7053fbf476341bfac90ab228523f2a
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
+  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   webview_flutter_wkwebview: 8ebf4fded22593026f7dbff1fbff31ea98573c8d
 
-PODFILE CHECKSUM: 19f4e2c390e3a6e601a46dc27d2e57c7e0c863bd
+PODFILE CHECKSUM: 9a9d4a8c4e95e91a56868a5f9c3f2ffe8af576af
 
 COCOAPODS: 1.16.2
