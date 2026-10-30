@@ -114,15 +114,14 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Future<void> _pickEpub() async {
     if (_isNextcloudSyncing) return;
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['epub', 'pdf'],
-      withData: false,
     );
 
-    if (!mounted || result == null || result.files.isEmpty) return;
+    if (!mounted || file == null) return;
 
-    final file = result.files.single;
+    // On Android, file_picker copies the pick into the app cache.
     final path = file.path;
     if (path == null) {
       _showError(AppLocalizations.of(context).epubPathMissing);

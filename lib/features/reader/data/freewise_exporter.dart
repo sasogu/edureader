@@ -29,8 +29,7 @@ class FreeWiseExporter {
     final savedPath = await FilePicker.saveFile(
       dialogTitle: 'Exportar anotaciones a FreeWise',
       fileName: _fileName(book),
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
+      mimeType: 'text/csv',
       bytes: Uint8List.fromList(utf8.encode(csv)),
     );
     return savedPath == null ? null : rows.length - 1;

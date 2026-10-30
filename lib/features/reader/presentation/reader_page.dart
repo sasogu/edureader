@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:advanced_epub_reader/advanced_epub_reader.dart';
 import 'package:file_picker/file_picker.dart';
@@ -1601,7 +1600,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                       ? Center(child: Text(_l10n.noAnnotations))
                       : ListView.separated(
                           itemCount: entries.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
                           itemBuilder: (_, index) {
                             final entry = entries[index];
                             return ListTile(
@@ -1638,18 +1637,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         }
         csv = await _importer.downloadCsv(baseUrl);
       } else {
-        final picked = await FilePicker.pickFiles(
+        final file = await FilePicker.pickFile(
           type: FileType.custom,
           allowedExtensions: ['csv'],
-          withData: true,
         );
-        if (picked == null || picked.files.isEmpty) return;
-        final file = picked.files.single;
-        final bytes =
-            file.bytes ??
-            (file.path == null ? null : await File(file.path!).readAsBytes());
-        if (bytes == null) throw const FormatException('CSV sin datos');
-        csv = utf8.decode(bytes);
+        if (file == null) return;
+        csv = utf8.decode(await file.readAsBytes());
       }
       var entries = _importer.parseForBook(widget.book, csv);
       if (!mounted) return;

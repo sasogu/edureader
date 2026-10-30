@@ -25,7 +25,7 @@ List<int> _epub(String manifest, Map<String, List<int>> files) {
   for (final entry in files.entries) {
     archive.addFile(ArchiveFile(entry.key, entry.value.length, entry.value));
   }
-  return ZipEncoder().encode(archive)!;
+  return ZipEncoder().encode(archive);
 }
 
 void main() {

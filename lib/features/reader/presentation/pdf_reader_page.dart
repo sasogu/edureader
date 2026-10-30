@@ -35,7 +35,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   final PdfAnnotationStorage _storage = PdfAnnotationStorage();
   final NextcloudSync _sync = NextcloudSync();
   List<PdfAnnotation> _annotations = [];
-  List<pdf.PdfTextRanges> _selections = [];
+  List<pdf.PdfPageTextRange> _selections = [];
+  int _selectionRequest = 0;
   int _initialPage = 1;
   int _currentPage = 1;
   bool _loading = true;
@@ -153,7 +154,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
       final text = await _controller.useDocument<String>((document) async {
         if (pageNumber < 1 || pageNumber > document.pages.length) return '';
         final page = await document.pages[pageNumber - 1].loadText();
-        return reflowPdfText(page.fullText);
+        return reflowPdfText(page?.fullText ?? '');
       });
       if (text == null) throw StateError('PDF not available');
       _textCache[pageNumber] = text;
@@ -203,14 +204,20 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     await PdfReadingPosition.save(_annotationKey, page);
   }
 
-  void _onSelectionChanged(List<pdf.PdfTextRanges> selections) {
-    final selected = selections.where((item) => item.isNotEmpty).toList();
+  Future<void> _onSelectionChanged(pdf.PdfTextSelection selection) async {
+    // Ranges load asynchronously; ignore results superseded by a newer change.
+    final request = ++_selectionRequest;
+    final ranges = selection.hasSelectedText
+        ? await selection.getSelectedTextRanges()
+        : const <pdf.PdfPageTextRange>[];
+    if (request != _selectionRequest) return;
+    final selected = ranges.where((item) => item.end > item.start).toList();
     if (!mounted || (selected.isEmpty && _selections.isEmpty)) return;
     setState(() => _selections = selected);
   }
 
   Future<void> _saveSelection({required bool withNote}) async {
-    final selections = List<pdf.PdfTextRanges>.of(_selections);
+    final selections = List<pdf.PdfPageTextRange>.of(_selections);
     if (selections.isEmpty || _saving) return;
     setState(() => _saving = true);
     try {
@@ -543,9 +550,11 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 controller: _controller,
                 initialPageNumber: _initialPage,
                 params: pdf.PdfViewerParams(
-                  enableTextSelection: true,
+                  textSelectionParams: pdf.PdfTextSelectionParams(
+                    onTextSelectionChange: (selection) =>
+                        unawaited(_onSelectionChanged(selection)),
+                  ),
                   onPageChanged: _onPageChanged,
-                  onTextSelectionChange: _onSelectionChanged,
                   pageOverlaysBuilder: _overlays,
                   viewerOverlayBuilder: (context, size, handleLinkTap) => [
                     GestureDetector(
