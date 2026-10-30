@@ -20,6 +20,8 @@ version: 1.0.18+35
 
 environment:
   sdk: ^3.9.2
+  # Pinned SDK; see ~/.local/bin/flutterw and flutter-update-watch.
+  flutter: 3.35.7
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
